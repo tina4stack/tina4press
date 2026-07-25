@@ -69,7 +69,10 @@ export function autoSectionSidebar(page, pages, config) {
   if (indexPage) sidebar.push({ text: `${label} Reference`, items: [{ text: "Overview", link: indexPage.url }] });
 
   const groups = (config.themeConfig.sidebarGroups || {})[section];
-  const ranges = (config.themeConfig.sidebarRanges || {})[section];
+  // Per-section ranges win; otherwise a single global range table applies to
+  // every section that isn't explicitly grouped (mirrors VitePress SECTION_RANGES).
+  const ranges = (config.themeConfig.sidebarRanges || {})[section]
+    || config.themeConfig.sidebarRangesDefault;
 
   if (groups && chapters.length) {
     const seen = new Set();
