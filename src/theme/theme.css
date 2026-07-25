@@ -102,9 +102,9 @@ a:hover { text-decoration: underline; }
   color: var(--tp-fg-2); }
 .tp-anchor { margin-left: 8px; color: var(--tp-fg-3); opacity: 0; text-decoration: none; font-weight: 400; }
 .tp-content h1:hover .tp-anchor, .tp-content h2:hover .tp-anchor, .tp-content h3:hover .tp-anchor { opacity: 1; }
-.tp-content :not(pre) > code { background: color-mix(in srgb, var(--tp-brand) 9%, var(--tp-bg-mute));
-  border: 1px solid color-mix(in srgb, var(--tp-brand) 22%, var(--tp-border)); color: var(--tp-brand);
-  padding: .14em .45em; border-radius: 5px; font-family: var(--tp-mono); font-size: .85em; font-weight: 500; }
+.tp-content :not(pre) > code { background: color-mix(in srgb, var(--tp-brand) 6%, var(--tp-bg-soft));
+  border: 1px solid color-mix(in srgb, var(--tp-brand) 16%, var(--tp-border)); color: var(--tp-brand);
+  padding: .12em .42em; border-radius: 5px; font-family: var(--tp-mono); font-size: .85em; font-weight: 500; }
 .tp-content table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; display: block;
   overflow-x: auto; }
 .tp-content th, .tp-content td { border: 1px solid var(--tp-border); padding: 8px 12px; text-align: left; }
