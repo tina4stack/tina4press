@@ -1,0 +1,20 @@
+{
+  "name": "tina4press",
+  "version": "0.1.0",
+  "description": "A zero-Vue static site generator for documentation, built on tina4-js. VitePress-like, but code is sacred: template syntax in code blocks (Frond {% %}, {{ }}) is never interpreted.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Andre van Zuydam",
+  "bin": {
+    "tina4press": "./bin/tina4press.js"
+  },
+  "scripts": {
+    "example:build": "node bin/tina4press.js build example",
+    "example:dev": "node bin/tina4press.js dev example"
+  },
+  "dependencies": {
+    "tina4js": "^1.5.1"
+  },
+  "files": ["bin", "src"],
+  "engines": { "node": ">=18" }
+}
