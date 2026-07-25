@@ -43,10 +43,11 @@
     });
   });
 
-  // ---- code-group tabs ----
-  document.querySelectorAll(".tp-code-group").forEach(function (group) {
-    var tabs = [].slice.call(group.querySelectorAll(".tp-cg-tab"));
-    var panes = [].slice.call(group.querySelectorAll(".tp-code"));
+  // ---- tabs (code-group + content tabs) ----
+  function wireTabs(group, tabSel, paneSel, groupSel) {
+    var own = function (el) { return el.closest(groupSel) === group; };
+    var tabs = [].slice.call(group.querySelectorAll(tabSel)).filter(own);
+    var panes = [].slice.call(group.querySelectorAll(paneSel)).filter(own);
     tabs.forEach(function (tab, k) {
       tab.addEventListener("click", function () {
         tabs.forEach(function (t) { t.classList.remove("tp-on"); });
@@ -55,7 +56,9 @@
         if (panes[k]) panes[k].classList.add("tp-on");
       });
     });
-  });
+  }
+  document.querySelectorAll(".tp-code-group").forEach(function (g) { wireTabs(g, ".tp-cg-tab", ".tp-code", ".tp-code-group"); });
+  document.querySelectorAll(".tp-tabs").forEach(function (g) { wireTabs(g, ".tp-tab", ".tp-tab-pane", ".tp-tabs"); });
 
   // ---- active TOC on scroll ----
   var tocLinks = {};

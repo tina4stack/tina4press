@@ -43,6 +43,36 @@ document.write("<script>alert(1)</script>"); // not executed, shown as text
 
 Inline works too: `{{ user.email }}` and `{% csrf %}` render literally.
 
+## Built-in widgets (no Vue, no authoring)
+
+Common doc components ship *in* tina4press as markdown containers.
+
+::: cards
+== ⚡ Code-safe
+Template syntax in code blocks is never interpreted.
+== 🔍 Context search
+⌘K, ranked, with snippets — pure client-side.
+== 🌗 Dark / light
+Persisted, no flash of the wrong theme.
+:::
+
+Install it your way:
+
+::: tabs
+== npm
+```bash
+npm i -D tina4press
+```
+== pnpm
+```bash
+pnpm add -D tina4press
+```
+== yarn
+```bash
+yarn add -D tina4press
+```
+:::
+
 ## Get going
 
 ```bash

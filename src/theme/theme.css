@@ -183,6 +183,34 @@ a:hover { text-decoration: underline; }
 .tp-code-group .tp-code.tp-on { display: block; }
 .tp-group { margin: 18px 0; }
 
+/* built-in content tabs */
+.tp-tabs { margin: 18px 0; border: 1px solid var(--tp-border); border-radius: 10px; overflow: hidden; }
+.tp-tabs-nav { display: flex; gap: 2px; background: var(--tp-bg-soft); border-bottom: 1px solid var(--tp-border);
+  padding: 0 4px; overflow-x: auto; }
+.tp-tab { background: none; border: none; color: var(--tp-fg-2); padding: 9px 14px; cursor: pointer;
+  font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; }
+.tp-tab.tp-on { color: var(--tp-brand); border-bottom-color: var(--tp-brand); }
+.tp-tab-pane { display: none; padding: 4px 16px; }
+.tp-tab-pane.tp-on { display: block; }
+.tp-tab-pane > .tp-code:first-child { margin-top: 14px; }
+
+/* built-in card grid */
+.tp-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 18px 0; }
+.tp-card { padding: 18px; border: 1px solid var(--tp-border); border-radius: 12px; background: var(--tp-bg-soft);
+  transition: border-color .15s, transform .1s; }
+.tp-card:hover { border-color: var(--tp-brand); transform: translateY(-1px); }
+.tp-card-ic { font-size: 22px; margin-bottom: 8px; }
+.tp-card h3 { margin: 0 0 6px; font-size: 16px; border: none; padding: 0; }
+.tp-card-body { color: var(--tp-fg-2); font-size: 14px; }
+.tp-card-body :last-child { margin-bottom: 0; }
+
+/* built-in numbered steps */
+.tp-steps { counter-reset: tp-step; padding-left: 8px; border-left: 2px solid var(--tp-border); margin: 18px 0; }
+.tp-steps > h3 { counter-increment: tp-step; position: relative; padding-left: 34px; border: none; margin: 20px 0 8px; }
+.tp-steps > h3::before { counter-increment: none; content: counter(tp-step); position: absolute; left: -1px; top: -2px;
+  transform: translateX(-50%); width: 26px; height: 26px; border-radius: 50%; background: var(--tp-brand); color: #06231a;
+  display: grid; place-items: center; font-size: 13px; font-weight: 700; }
+
 /* search modal */
 .tp-search-modal[hidden] { display: none; }
 .tp-search-modal { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.4);
