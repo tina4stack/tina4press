@@ -45,6 +45,30 @@ function withBase(link, base) {
   return (base.replace(/\/$/, "") + "/" + link.replace(/^\//, "")).replace(/\/{2,}/g, "/");
 }
 
+// Map friendly config color keys -> CSS variables. Anything the site omits
+// falls back to the theme.css defaults, so a site can retheme with one or two
+// values (themeConfig.colors.light.brand = '#...').
+const COLOR_VARS = {
+  brand: "--tp-brand", brand2: "--tp-brand-2", bg: "--tp-bg", bgSoft: "--tp-bg-soft",
+  bgMute: "--tp-bg-mute", border: "--tp-border", border2: "--tp-border-2",
+  fg: "--tp-fg", fg2: "--tp-fg-2", fg3: "--tp-fg-3", codeBg: "--tp-code-bg", sel: "--tp-sel",
+};
+function colorBlock(selector, colors) {
+  if (!colors) return "";
+  const decls = Object.entries(colors)
+    .filter(([k]) => COLOR_VARS[k])
+    .map(([k, v]) => `${COLOR_VARS[k]}:${String(v).replace(/[<>]/g, "")}`)
+    .join(";");
+  return decls ? `${selector}{${decls}}` : "";
+}
+function colorStyle(themeConfig) {
+  const c = themeConfig.colors;
+  if (!c) return "";
+  const light = colorBlock(":root", c.light || c);   // flat object = light
+  const dark = colorBlock(':root[data-theme="dark"]', c.dark);
+  return light || dark ? `<style id="tp-colors">${light}${dark}</style>` : "";
+}
+
 // VitePress-style home hero + features, from frontmatter.
 function heroHtml(data, base) {
   const h = data.hero || {};
@@ -54,9 +78,13 @@ function heroHtml(data, base) {
     const brand = (a.theme || "brand") === "brand";
     return `<a class="tp-hero-btn ${brand ? "tp-hero-brand" : "tp-hero-alt"}" href="${esc(link)}">${esc(a.text || "")}</a>`;
   }).join("");
-  const img = h.image && (h.image.src || typeof h.image === "string")
-    ? `<div class="tp-hero-img"><img src="${esc(withBase(h.image.src || h.image, base))}" alt="${esc(h.image.alt || "")}"></div>`
-    : "";
+  const imgSrc = h.image && (h.image.src || typeof h.image === "string") ? withBase(h.image.src || h.image, base) : "";
+  // Animated (SVGator) SVGs run their embedded <script> only via <object>, not
+  // <img> — matches how the VitePress theme loaded the animated hero logo.
+  const img = !imgSrc ? ""
+    : /\.svg(\?|$)/i.test(imgSrc)
+      ? `<div class="tp-hero-img"><object type="image/svg+xml" data="${esc(imgSrc)}" aria-label="${esc((h.image && h.image.alt) || "")}"></object></div>`
+      : `<div class="tp-hero-img"><img src="${esc(imgSrc)}" alt="${esc((h.image && h.image.alt) || "")}"></div>`;
   const feats = Array.isArray(data.features) ? data.features : [];
   const featGrid = feats.length
     ? `<div class="tp-features">${feats.map((f) =>
@@ -95,6 +123,7 @@ export function renderPage({ contentHtml, toc, page, config, sidebar }) {
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(page.description || config.description)}">
 <link rel="stylesheet" href="${esc(asset("theme.css"))}">
+${colorStyle(tc)}
 ${tc.logo ? `<link rel="icon" href="${esc(withBase(tc.logo, base))}">` : ""}
 <script>(()=>{try{var t=localStorage.getItem('tp-theme');var d=t?t==='dark':matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
 </head>
@@ -113,6 +142,10 @@ ${tc.logo ? `<link rel="icon" href="${esc(withBase(tc.logo, base))}">` : ""}
     </div>
   </div>
 </header>
+<div class="tp-mobile-menu" id="tp-mobile-menu" hidden>
+  <nav class="tp-mobile-nav">${navHtml(tc.nav, base)}</nav>
+  ${sidebar && sidebar.length ? `<div class="tp-mobile-side">${sidebarHtml(sidebar, page.url, base)}</div>` : ""}
+</div>
 <div class="tp-body${isHome ? " tp-home" : ""}">
   ${isHome ? "" : `<aside class="tp-sidebar" id="tp-sidebar"><div class="tp-sidebar-in">${sidebarHtml(sidebar, page.url, base)}</div></aside>`}
   <main class="tp-main">

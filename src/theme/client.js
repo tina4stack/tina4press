@@ -20,16 +20,16 @@
     try { localStorage.setItem("tp-theme", next); } catch (e) {}
   });
 
-  // ---- mobile sidebar ----
-  var sidebar = document.getElementById("tp-sidebar");
+  // ---- mobile menu (nav + sidebar) ----
+  var menu = document.getElementById("tp-mobile-menu");
   var mt = document.getElementById("tp-menu-toggle");
-  if (mt) mt.addEventListener("click", function () { if (sidebar) sidebar.classList.toggle("tp-open"); });
-  document.addEventListener("click", function (e) {
-    if (sidebar && sidebar.classList.contains("tp-open") &&
-        !sidebar.contains(e.target) && e.target.id !== "tp-menu-toggle") {
-      sidebar.classList.remove("tp-open");
-    }
-  });
+  if (mt && menu) {
+    mt.addEventListener("click", function () { menu.hidden = !menu.hidden; });
+    // close after tapping any link, or when tapping outside the panel
+    menu.addEventListener("click", function (e) {
+      if (e.target.closest("a") || e.target === menu) menu.hidden = true;
+    });
+  }
 
   // ---- code copy ----
   document.querySelectorAll(".tp-copy").forEach(function (btn) {
@@ -37,8 +37,12 @@
       var pre = btn.parentElement.querySelector("pre");
       var text = pre ? pre.innerText : "";
       navigator.clipboard.writeText(text).then(function () {
-        btn.textContent = "Copied"; btn.classList.add("tp-copied");
-        setTimeout(function () { btn.textContent = "Copy"; btn.classList.remove("tp-copied"); }, 1400);
+        btn.innerHTML = btn.getAttribute("data-check") || "✓";
+        btn.classList.add("tp-copied");
+        setTimeout(function () {
+          btn.innerHTML = btn.getAttribute("data-clip") || "Copy";
+          btn.classList.remove("tp-copied");
+        }, 1400);
       });
     });
   });
