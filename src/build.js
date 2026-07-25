@@ -8,7 +8,7 @@ import { createRequire } from "node:module";
 
 import { markdownToHtml, makeSlugger } from "./markdown.js";
 import { parseFrontmatter } from "./frontmatter.js";
-import { buildSidebar, resolveSidebar, titleFromPage } from "./sidebar.js";
+import { autoSectionSidebar, resolveSidebar, titleFromPage } from "./sidebar.js";
 import { renderPage } from "./theme/layout.js";
 
 const require = createRequire(import.meta.url);
@@ -65,8 +65,8 @@ export function build(config, { quiet = false } = {}) {
     return { abs, relPath, data, content, url: urlFor(relPath) };
   });
 
-  // 2) sidebar (once, from all pages)
-  const sidebar = buildSidebar(pages, config);
+  // 2) sidebar: explicit config wins; otherwise a section-scoped auto sidebar
+  const explicit = config.themeConfig.sidebar;
 
   // 3) render + write each page, collect search records
   rmSync(config.outPath, { recursive: true, force: true });
@@ -84,7 +84,10 @@ export function build(config, { quiet = false } = {}) {
       title, description: page.data.description || "", relPath: page.relPath,
       url: page.url, layout: page.data.layout || "doc", data: page.data,
     };
-    const pageSidebar = normalizeSidebar(resolveSidebar(sidebar, page.url));
+    const rawSidebar = explicit
+      ? resolveSidebar(explicit, page.url)
+      : autoSectionSidebar(page, pages, config);
+    const pageSidebar = normalizeSidebar(rawSidebar);
     const out = renderPage({ contentHtml: html, toc, page: pageMeta, config, sidebar: pageSidebar });
     const dest = join(config.outPath, page.url);
     mkdirSync(dirname(dest), { recursive: true });
@@ -132,7 +135,7 @@ function normalizeSidebar(sidebar) {
     return l;
   };
   return (sidebar || []).map((g) => ({
-    text: g.text, link: g.link ? fix(g.link) : undefined,
+    text: g.text, link: g.link ? fix(g.link) : undefined, collapsed: g.collapsed,
     items: (g.items || []).map((it) => ({ ...it, link: fix(it.link) })),
   }));
 }

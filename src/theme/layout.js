@@ -12,14 +12,24 @@ function navHtml(nav, base) {
 
 function sidebarHtml(sidebar, currentUrl, base) {
   return sidebar.map((group) => {
+    let hasActive = false;
     const items = (group.items || []).map((it) => {
-      const active = it.link === currentUrl ? " tp-active" : "";
-      return `<li><a class="tp-side-link${active}" href="${esc(withBase(it.link, base))}">${esc(it.text)}</a></li>`;
+      const isActive = it.link === currentUrl;
+      if (isActive) hasActive = true;
+      return `<li><a class="tp-side-link${isActive ? " tp-active" : ""}" href="${esc(withBase(it.link, base))}">${esc(it.text)}</a></li>`;
     }).join("");
-    const head = group.link
-      ? `<a class="tp-side-group-link" href="${esc(withBase(group.link, base))}">${esc(group.text)}</a>`
-      : `<p class="tp-side-group">${esc(group.text)}</p>`;
-    return `<div class="tp-side-block">${head}<ul>${items}</ul></div>`;
+    // Collapsible group when marked collapsed — but always open if it holds the
+    // current page, so the reader never loses their place.
+    if (group.collapsed && !hasActive) {
+      return `<details class="tp-side-block tp-collapsible"><summary class="tp-side-group">${esc(group.text)}</summary><ul>${items}</ul></details>`;
+    }
+    if (group.link) {
+      return `<div class="tp-side-block"><a class="tp-side-group-link" href="${esc(withBase(group.link, base))}">${esc(group.text)}</a><ul>${items}</ul></div>`;
+    }
+    const canCollapse = group.collapsed !== undefined;
+    return canCollapse
+      ? `<details class="tp-side-block tp-collapsible" open><summary class="tp-side-group">${esc(group.text)}</summary><ul>${items}</ul></details>`
+      : `<div class="tp-side-block"><p class="tp-side-group">${esc(group.text)}</p><ul>${items}</ul></div>`;
   }).join("");
 }
 

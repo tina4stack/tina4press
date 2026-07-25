@@ -1,34 +1,37 @@
-// sidebar.js — build the navigation sidebar automatically from the file tree,
-// unless the site config supplies its own. Folders become groups; files become
-// links. Order follows a numeric filename prefix (01-intro.md), then a
-// frontmatter `order`, then title. `index.md` becomes the group's landing link.
+// sidebar.js — navigation sidebar. Two modes:
+//   1) explicit: config.themeConfig.sidebar (array, or path-keyed object) — used
+//      verbatim, resolved per page by longest-prefix (VitePress-compatible).
+//   2) auto (default): a SECTION-SCOPED sidebar — a page under /js/ sees only
+//      the /js/ chapters, grouped like VitePress via config.themeConfig
+//      .sidebarGroups[section] (name-based stems) or numeric ranges, with a
+//      Quick Reference link, collapsed non-first groups, and an orphan "More".
 
 import { basename, dirname } from "node:path";
 
 function titleFromPage(page) {
-  if (page.data.title) return String(page.data.title);
+  if (page.data.title && page.data.title !== "home") return String(page.data.title);
   const h1 = page.content.match(/^\s*#\s+(.+)$/m);
   if (h1) return h1[1].replace(/[*_`]/g, "").trim();
   return prettify(basename(page.relPath).replace(/\.md$/, ""));
 }
-
 function prettify(name) {
-  return name.replace(/^\d+[-_.]?/, "").replace(/[-_]/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return name.replace(/^\d+[-_.]?/, "").replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
-
 function orderKey(page) {
   const m = basename(page.relPath).match(/^(\d+)/);
   if (m) return parseInt(m[1], 10);
   if (typeof page.data.order === "number") return page.data.order;
   return 9999;
 }
+function stemOf(relPath) {
+  return basename(relPath).replace(/^\d+-/, "").replace(/\.md$/, "");
+}
+export function sectionOf(url) {
+  const parts = String(url).replace(/^\//, "").split("/");
+  return parts.length > 1 ? parts[0] : "";
+}
 
-// Resolve the sidebar for a specific page URL. Supports VitePress shapes:
-//  - an array (one global sidebar)
-//  - a path-keyed object { '/js/': [...], '/php/': [...] } chosen by the
-//    longest key that prefixes the current page (so porting a VitePress
-//    multi-sidebar is copy-paste).
+// Resolve an explicit sidebar (array or path-keyed object) for a page URL.
 export function resolveSidebar(sidebar, url) {
   if (Array.isArray(sidebar)) return sidebar;
   if (sidebar && typeof sidebar === "object") {
@@ -42,35 +45,53 @@ export function resolveSidebar(sidebar, url) {
   return [];
 }
 
-// pages: [{ relPath, url, data, content }]. Returns an array sidebar, OR the
-// path-keyed object from config (resolved per page by resolveSidebar).
-export function buildSidebar(pages, config) {
-  if (config.themeConfig.sidebar) return config.themeConfig.sidebar;
-
-  const groups = new Map(); // groupName -> items[]
-  const rootItems = [];
-
-  for (const page of pages) {
-    if (page.data.layout === "home") continue;
-    const dir = dirname(page.relPath);
-    const item = { text: titleFromPage(page), link: page.url, _order: orderKey(page), _name: basename(page.relPath) };
-    if (dir === "." || dir === "") {
-      if (item._name === "index.md") continue; // home / root index isn't a sidebar row
-      rootItems.push(item);
-    } else {
-      const group = dir.split("/")[0];
-      if (!groups.has(group)) groups.set(group, []);
-      groups.get(group).push(item);
-    }
+// The section-scoped auto sidebar for a given page.
+export function autoSectionSidebar(page, pages, config) {
+  const section = sectionOf(page.url);
+  if (!section) {
+    // root-level pages: a flat list of the other root pages
+    const items = pages
+      .filter((p) => sectionOf(p.url) === "" && basename(p.relPath) !== "index.md" && p.data.layout !== "home")
+      .sort(sortPages)
+      .map((p) => ({ text: titleFromPage(p), link: p.url }));
+    return items.length ? [{ text: "Overview", items }] : [];
   }
 
-  const sort = (a, b) => a._order - b._order || a.text.localeCompare(b.text);
+  const inSection = pages.filter((p) => sectionOf(p.url) === section);
+  const label = (config.themeConfig.sectionLabels || {})[section] || prettify(section);
+  const chapters = inSection
+    .filter((p) => basename(p.relPath) !== "index.md")
+    .sort(sortPages)
+    .map((p) => ({ text: titleFromPage(p), link: p.url, stem: stemOf(p.relPath), num: orderKey(p) }));
+
   const sidebar = [];
-  if (rootItems.length) sidebar.push({ text: "Overview", items: rootItems.sort(sort) });
-  for (const [name, items] of [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-    sidebar.push({ text: prettify(name), items: items.sort(sort) });
+  const indexPage = inSection.find((p) => basename(p.relPath) === "index.md");
+  if (indexPage) sidebar.push({ text: `${label} Reference`, items: [{ text: "Overview", link: indexPage.url }] });
+
+  const groups = (config.themeConfig.sidebarGroups || {})[section];
+  const ranges = (config.themeConfig.sidebarRanges || {})[section];
+
+  if (groups && chapters.length) {
+    const seen = new Set();
+    groups.forEach((g, i) => {
+      const items = chapters.filter((c) => g.stems.includes(c.stem));
+      items.forEach((c) => seen.add(c.stem));
+      if (items.length) sidebar.push({ text: g.text, collapsed: i !== 0, items: items.map(strip) });
+    });
+    const orphans = chapters.filter((c) => !seen.has(c.stem)).map(strip);
+    if (orphans.length) sidebar.push({ text: "More", collapsed: true, items: orphans });
+  } else if (ranges && chapters.length) {
+    for (const [name, [start, end]] of Object.entries(ranges)) {
+      const items = chapters.filter((c) => c.num >= start && c.num <= end).map(strip);
+      if (items.length) sidebar.push({ text: name, collapsed: name !== Object.keys(ranges)[0], items });
+    }
+  } else if (chapters.length) {
+    sidebar.push({ text: label, items: chapters.map(strip) });
   }
   return sidebar;
 }
+
+function strip(c) { return { text: c.text, link: c.link }; }
+function sortPages(a, b) { return orderKey(a) - orderKey(b) || titleFromPage(a).localeCompare(titleFromPage(b)); }
 
 export { titleFromPage };
