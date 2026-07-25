@@ -8,7 +8,7 @@ import { createRequire } from "node:module";
 
 import { markdownToHtml, makeSlugger } from "./markdown.js";
 import { parseFrontmatter } from "./frontmatter.js";
-import { buildSidebar, titleFromPage } from "./sidebar.js";
+import { buildSidebar, resolveSidebar, titleFromPage } from "./sidebar.js";
 import { renderPage } from "./theme/layout.js";
 
 const require = createRequire(import.meta.url);
@@ -82,9 +82,10 @@ export function build(config, { quiet = false } = {}) {
     const title = titleFromPage(page);
     const pageMeta = {
       title, description: page.data.description || "", relPath: page.relPath,
-      url: page.url, layout: page.data.layout || "doc",
+      url: page.url, layout: page.data.layout || "doc", data: page.data,
     };
-    const out = renderPage({ contentHtml: html, toc, page: pageMeta, config, sidebar });
+    const pageSidebar = normalizeSidebar(resolveSidebar(sidebar, page.url));
+    const out = renderPage({ contentHtml: html, toc, page: pageMeta, config, sidebar: pageSidebar });
     const dest = join(config.outPath, page.url);
     mkdirSync(dirname(dest), { recursive: true });
     writeFileSync(dest, out);
@@ -118,4 +119,20 @@ export function build(config, { quiet = false } = {}) {
 function withBase(link, base) {
   if (/^https?:\/\//.test(link)) return link;
   return ((base || "/").replace(/\/$/, "") + "/" + link.replace(/^\//, "")).replace(/\/{2,}/g, "/");
+}
+
+// Normalize sidebar item links so ported VitePress sidebars work: rewrite
+// trailing .md -> .html, and give extensionless links (VitePress clean URLs)
+// a .html so they resolve against static output.
+function normalizeSidebar(sidebar) {
+  const fix = (link) => {
+    if (!link || /^https?:\/\//.test(link)) return link;
+    let l = link.replace(/\.md(#|$)/, ".html$1");
+    if (!/\.html($|#)/.test(l) && !l.endsWith("/")) l += ".html";
+    return l;
+  };
+  return (sidebar || []).map((g) => ({
+    text: g.text, link: g.link ? fix(g.link) : undefined,
+    items: (g.items || []).map((it) => ({ ...it, link: fix(it.link) })),
+  }));
 }

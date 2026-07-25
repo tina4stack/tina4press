@@ -24,7 +24,26 @@ function orderKey(page) {
   return 9999;
 }
 
-// pages: [{ relPath, url, data, content }]. Returns [{ text, link?, items:[] }].
+// Resolve the sidebar for a specific page URL. Supports VitePress shapes:
+//  - an array (one global sidebar)
+//  - a path-keyed object { '/js/': [...], '/php/': [...] } chosen by the
+//    longest key that prefixes the current page (so porting a VitePress
+//    multi-sidebar is copy-paste).
+export function resolveSidebar(sidebar, url) {
+  if (Array.isArray(sidebar)) return sidebar;
+  if (sidebar && typeof sidebar === "object") {
+    const path = "/" + String(url).replace(/^\//, "");
+    let best = null, bestLen = -1;
+    for (const key of Object.keys(sidebar)) {
+      if (path.startsWith(key) && key.length > bestLen) { best = sidebar[key]; bestLen = key.length; }
+    }
+    return best || [];
+  }
+  return [];
+}
+
+// pages: [{ relPath, url, data, content }]. Returns an array sidebar, OR the
+// path-keyed object from config (resolved per page by resolveSidebar).
 export function buildSidebar(pages, config) {
   if (config.themeConfig.sidebar) return config.themeConfig.sidebar;
 

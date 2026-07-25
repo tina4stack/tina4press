@@ -43,6 +43,20 @@
     });
   });
 
+  // ---- code-group tabs ----
+  document.querySelectorAll(".tp-code-group").forEach(function (group) {
+    var tabs = [].slice.call(group.querySelectorAll(".tp-cg-tab"));
+    var panes = [].slice.call(group.querySelectorAll(".tp-code"));
+    tabs.forEach(function (tab, k) {
+      tab.addEventListener("click", function () {
+        tabs.forEach(function (t) { t.classList.remove("tp-on"); });
+        panes.forEach(function (p) { p.classList.remove("tp-on"); });
+        tab.classList.add("tp-on");
+        if (panes[k]) panes[k].classList.add("tp-on");
+      });
+    });
+  });
+
   // ---- active TOC on scroll ----
   var tocLinks = {};
   document.querySelectorAll(".tp-toc a").forEach(function (a) {

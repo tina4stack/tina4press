@@ -35,6 +35,35 @@ function withBase(link, base) {
   return (base.replace(/\/$/, "") + "/" + link.replace(/^\//, "")).replace(/\/{2,}/g, "/");
 }
 
+// VitePress-style home hero + features, from frontmatter.
+function heroHtml(data, base) {
+  const h = data.hero || {};
+  const actions = Array.isArray(h.actions) ? h.actions : [];
+  const btns = actions.map((a) => {
+    const link = withBase(String(a.link || "#").replace(/\.md(#|$)/, ".html$1"), base);
+    const brand = (a.theme || "brand") === "brand";
+    return `<a class="tp-hero-btn ${brand ? "tp-hero-brand" : "tp-hero-alt"}" href="${esc(link)}">${esc(a.text || "")}</a>`;
+  }).join("");
+  const img = h.image && (h.image.src || typeof h.image === "string")
+    ? `<div class="tp-hero-img"><img src="${esc(withBase(h.image.src || h.image, base))}" alt="${esc(h.image.alt || "")}"></div>`
+    : "";
+  const feats = Array.isArray(data.features) ? data.features : [];
+  const featGrid = feats.length
+    ? `<div class="tp-features">${feats.map((f) =>
+        `<div class="tp-feature">${f.icon ? `<div class="tp-feature-ic">${esc(f.icon)}</div>` : ""}` +
+        `<h3>${esc(f.title || "")}</h3><p>${esc(f.details || f.text || "")}</p></div>`).join("")}</div>`
+    : "";
+  return `<section class="tp-hero">
+    <div class="tp-hero-text">
+      ${h.name ? `<h1 class="tp-hero-name">${esc(h.name)}</h1>` : ""}
+      ${h.text ? `<p class="tp-hero-tag">${esc(h.text)}</p>` : ""}
+      ${h.tagline ? `<p class="tp-hero-line">${esc(h.tagline)}</p>` : ""}
+      ${btns ? `<div class="tp-hero-actions">${btns}</div>` : ""}
+    </div>
+    ${img}
+  </section>${featGrid}`;
+}
+
 export function renderPage({ contentHtml, toc, page, config, sidebar }) {
   const tc = config.themeConfig;
   const base = config.base || "/";
@@ -46,6 +75,7 @@ export function renderPage({ contentHtml, toc, page, config, sidebar }) {
     : "";
 
   const isHome = page.layout === "home";
+  const homeHero = isHome ? heroHtml(page.data || {}, base) : "";
 
   return `<!doctype html>
 <html lang="en">
@@ -76,7 +106,8 @@ ${tc.logo ? `<link rel="icon" href="${esc(withBase(tc.logo, base))}">` : ""}
 <div class="tp-body${isHome ? " tp-home" : ""}">
   ${isHome ? "" : `<aside class="tp-sidebar" id="tp-sidebar"><div class="tp-sidebar-in">${sidebarHtml(sidebar, page.url, base)}</div></aside>`}
   <main class="tp-main">
-    <article class="tp-content">${contentHtml}</article>
+    ${homeHero}
+    <article class="tp-content${isHome ? " tp-content-home" : ""}">${contentHtml}</article>
     ${isHome ? "" : `<div class="tp-page-foot">${editLink}${tc.footer ? `<p class="tp-footer">${tc.footer}</p>` : ""}</div>`}
   </main>
   ${isHome ? "" : tocHtml(toc)}

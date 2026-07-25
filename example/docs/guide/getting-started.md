@@ -51,6 +51,45 @@ Sidebar order follows a numeric filename prefix (`01-intro.md`), then a
 frontmatter `order:`, then the title.
 :::
 
+## Code with a filename and description
+
+Every code block gets a copy button. Add `title=` for a filename and `desc=` for
+a one-line description — no plugin required, highlighting is built in.
+
+```python title="src/routes/users.py" desc="A thin route; logic lives in src/app/"
+@get("/users")
+async def list_users(request, response):
+    return response(User().select())
+```
+
+## The same example in four languages (code-group)
+
+::: code-group
+
+```python title="Python"
+@get("/users")
+async def list_users(request, response):
+    return response(User().select())
+```
+
+```php title="PHP"
+\Tina4\Get::add("/users", function($response) {
+    return $response((new User())->select());
+});
+```
+
+```javascript title="Node.js"
+get("/users", async (req, res) => res.json(await new User().select()));
+```
+
+```ruby title="Ruby"
+get "/users" do |request, response|
+  response.json(User.new.select)
+end
+```
+
+:::
+
 ## Next steps
 
 Point it at real docs and run `tina4press dev`.

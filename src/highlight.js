@@ -11,8 +11,11 @@ const KEYWORDS = {
   typescript: "function class return if else for while do switch case break continue new const let var import export from default extends implements interface type enum async await yield try catch finally throw typeof instanceof in of null undefined true false this super static get set public private protected readonly abstract as keyof namespace declare",
   sql: "select from where insert update delete into values create table alter drop primary key foreign references index join left right inner outer on group by order having limit offset as and or not null distinct set",
   bash: "if then else elif fi for while do done case esac function return export local echo cd exit source set unset in",
+  pascal: "program unit uses interface implementation begin end procedure function var const type class record object array of string integer boolean double if then else for to downto while do repeat until case with try except finally raise inherited constructor destructor property published private protected public nil true false and or not xor div mod result self out",
   json: "",
 };
+KEYWORDS.delphi = KEYWORDS.pascal;
+KEYWORDS.dpr = KEYWORDS.pascal;
 KEYWORDS.js = KEYWORDS.javascript;
 KEYWORDS.ts = KEYWORDS.typescript;
 KEYWORDS.nodejs = KEYWORDS.typescript;
@@ -23,7 +26,7 @@ KEYWORDS.yml = "";
 const LINE_COMMENT = {
   python: "#", ruby: "#", bash: "#", sh: "#", yaml: "#", yml: "#",
   php: "//", javascript: "//", typescript: "//", js: "//", ts: "//", nodejs: "//",
-  sql: "--",
+  sql: "--", pascal: "//", delphi: "//", dpr: "//",
 };
 
 const escapeHtml = (s) =>
