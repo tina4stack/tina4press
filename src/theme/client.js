@@ -176,4 +176,57 @@
     }}`;
     resultsEl.append(list);
   }
+
+  // ---- built-in RAG chat (themeConfig.chat) ----
+  var chatCfg = window.__TP_CHAT__;
+  if (chatCfg && chatCfg.api) {
+    var api = chatCfg.api.replace(/\/+$/, "");
+    var lang = (location.pathname.match(/\/(python|php|ruby|nodejs|js|delphi)\//) || [])[1] || "";
+    var wrap = document.createElement("div");
+    wrap.className = "tp-chat";
+    wrap.innerHTML =
+      '<button class="tp-chat-btn" aria-label="Ask">💬 ' + esc(chatCfg.label || "Ask") + '</button>' +
+      '<div class="tp-chat-panel" hidden>' +
+      '<div class="tp-chat-head"><strong>' + esc(chatCfg.label || "Ask") + '</strong>' +
+      (chatCfg.model ? '<span class="tp-chat-model">' + esc(chatCfg.model) + '</span>' : '') + '</div>' +
+      '<div class="tp-chat-log"></div>' +
+      '<form class="tp-chat-form"><input class="tp-chat-input" placeholder="' +
+      esc(chatCfg.placeholder || "Ask a question…") + '" autocomplete="off"><button type="submit">Ask</button></form>' +
+      '</div>';
+    document.body.appendChild(wrap);
+    var cbtn = wrap.querySelector(".tp-chat-btn");
+    var panel = wrap.querySelector(".tp-chat-panel");
+    var log = wrap.querySelector(".tp-chat-log");
+    var form = wrap.querySelector(".tp-chat-form");
+    var cin = wrap.querySelector(".tp-chat-input");
+    cbtn.addEventListener("click", function () { panel.hidden = !panel.hidden; if (!panel.hidden) cin.focus(); });
+
+    function bubble(role, html) {
+      var b = document.createElement("div");
+      b.className = "tp-chat-msg tp-chat-" + role;
+      b.innerHTML = html;
+      log.appendChild(b); log.scrollTop = log.scrollHeight; return b;
+    }
+    function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+    function md(t) {
+      var h = esc(t);
+      h = h.replace(/```(\w*)\n([\s\S]*?)```/g, function (_, l, c) { return "<pre><code>" + c.replace(/\n$/, "") + "</code></pre>"; });
+      h = h.replace(/`([^`]+)`/g, "<code>$1</code>");
+      h = h.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      return h.replace(/\n/g, "<br>");
+    }
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var q = cin.value.trim(); if (!q) return;
+      cin.value = ""; bubble("you", esc(q));
+      var thinking = bubble("bot", "…");
+      fetch(api + "/v1/ask", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q, language: lang || undefined, k: 6, stream: false }),
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        thinking.innerHTML = md(d.answer || d.response || d.text || "(no answer)");
+        log.scrollTop = log.scrollHeight;
+      }).catch(function () { thinking.textContent = "Sorry — the assistant is unreachable right now."; });
+    });
+  }
 })();

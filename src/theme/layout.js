@@ -162,7 +162,7 @@ ${tc.search ? `<div class="tp-search-modal" id="tp-search-modal" hidden>
     <div class="tp-search-foot"><kbd>↑</kbd><kbd>↓</kbd> navigate <kbd>↵</kbd> open <kbd>esc</kbd> close</div>
   </div>
 </div>` : ""}
-<script>window.__TP_BASE__=${JSON.stringify(base)};</script>
+<script>window.__TP_BASE__=${JSON.stringify(base)};${tc.chat ? `window.__TP_CHAT__=${JSON.stringify(tc.chat)};` : ""}</script>
 <script src="${esc(asset("tina4js.min.js"))}"></script>
 <script src="${esc(asset("client.js"))}"></script>
 </body>
