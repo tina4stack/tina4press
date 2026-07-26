@@ -179,12 +179,14 @@ export function build(config, { quiet = false } = {}) {
   // 5) public passthrough
   copyDir(config.publicPath, config.outPath);
 
-  // 6) clean URLs serve natively (foo/index.html) on every host — no config
-  // needed. For OLD /foo.html inbound links, emit host-agnostic redirect files
-  // (whichever the host reads is used; the rest are harmless): Apache .htaccess
-  // AND Netlify/Cloudflare _redirects.
+  // 6) Always emit a small .htaccess: harmless on non-Apache hosts (ignored),
+  // a sane Apache default (no MultiViews content-negotiation surprises), and -
+  // crucially for servers that extract over the web root without clearing it -
+  // it OVERWRITES any stale .htaccess so old rules never linger. In clean mode
+  // it also carries the old-.html -> clean 301s, mirrored to a host-agnostic
+  // _redirects (Netlify / Cloudflare Pages).
+  writeFileSync(join(config.outPath, ".htaccess"), htaccessBody(base, clean ? redirects : []));
   if (clean && redirects.length) {
-    writeFileSync(join(config.outPath, ".htaccess"), htaccessBody(base, redirects));
     writeFileSync(join(config.outPath, "_redirects"),
       redirects.map((r) => `${r.from} ${r.to} 301`).join("\n") + "\n");
   }
