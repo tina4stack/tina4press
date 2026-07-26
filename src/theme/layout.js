@@ -102,7 +102,7 @@ function siteLink(link, base, clean) {
   const n = (m ? m[1] : link).replace(/^\/+/, "").replace(/\/$/, "");
   const hash = (m && m[3]) || "";
   let url;
-  if (clean) url = (n === "" || n === "index") ? "" : (n.endsWith("/index") ? n.slice(0, -5) : n);
+  if (clean) url = (n === "" || n === "index") ? "" : (n.endsWith("/index") ? n.slice(0, -5) : n + "/");
   else url = (m && m[2]) ? n + ".html" : (n ? n + ".html" : "");
   return withBase(url, base) + hash;
 }
