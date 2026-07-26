@@ -61,6 +61,31 @@ function colorBlock(selector, colors) {
     .join(";");
   return decls ? `${selector}{${decls}}` : "";
 }
+// Google Analytics (gtag). themeConfig.analytics = 'G-XXXX' or { ga: 'G-XXXX' }.
+function analyticsScript(themeConfig) {
+  const a = themeConfig.analytics;
+  const id = typeof a === "string" ? a : a && a.ga;
+  if (!id || !/^[A-Za-z0-9-]+$/.test(id)) return "";
+  return `<script async src="https://www.googletagmanager.com/gtag/js?id=${id}"></script>` +
+    `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}` +
+    `gtag('js',new Date());gtag('config','${id}');</script>`;
+}
+
+// General head tags, VitePress-compatible format: [tag, attrs, innerHTML?].
+// Lets a site port its `head: [...]` array verbatim.
+function headHtml(config) {
+  const head = config.head;
+  if (!Array.isArray(head)) return "";
+  return head.map((entry) => {
+    if (!Array.isArray(entry)) return "";
+    const [tag, attrs = {}, inner = ""] = entry;
+    if (!/^[a-zA-Z][\w-]*$/.test(tag)) return "";
+    const a = Object.entries(attrs)
+      .map(([k, v]) => ` ${k}="${String(v).replace(/"/g, "&quot;")}"`).join("");
+    return inner || !/^(link|meta|base)$/i.test(tag) ? `<${tag}${a}>${inner}</${tag}>` : `<${tag}${a}>`;
+  }).join("");
+}
+
 function colorStyle(themeConfig) {
   const c = themeConfig.colors;
   if (!c) return "";
@@ -124,6 +149,8 @@ export function renderPage({ contentHtml, toc, page, config, sidebar }) {
 <meta name="description" content="${esc(page.description || config.description)}">
 <link rel="stylesheet" href="${esc(asset("theme.css"))}">
 ${colorStyle(tc)}
+${headHtml(config)}
+${analyticsScript(tc)}
 ${tc.logo ? `<link rel="icon" href="${esc(withBase(tc.logo, base))}">` : ""}
 <script>(()=>{try{var t=localStorage.getItem('tp-theme');var d=t?t==='dark':matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
 </head>
