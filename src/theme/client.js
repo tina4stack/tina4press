@@ -212,8 +212,11 @@
       var h = esc(t);
       h = h.replace(/```(\w*)\n([\s\S]*?)```/g, function (_, l, c) { return "<pre><code>" + c.replace(/\n$/, "") + "</code></pre>"; });
       h = h.replace(/`([^`]+)`/g, "<code>$1</code>");
+      h = h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
       h = h.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-      return h.replace(/\n/g, "<br>");
+      // don't turn <br> inside <pre> blocks
+      h = h.replace(/\n/g, "<br>");
+      return h.replace(/<pre>([\s\S]*?)<\/pre>/g, function (m) { return m.replace(/<br>/g, "\n"); });
     }
     form.addEventListener("submit", function (e) {
       e.preventDefault();
