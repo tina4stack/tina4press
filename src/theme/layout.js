@@ -95,11 +95,23 @@ function colorStyle(themeConfig) {
 }
 
 // VitePress-style home hero + features, from frontmatter.
-function heroHtml(data, base) {
+// Clean-aware fix for a hero/site link (mirrors build's siteLinkFix).
+function siteLink(link, base, clean) {
+  if (/^https?:\/\//.test(link) || String(link).startsWith("#")) return link;
+  const m = String(link).match(/^(\/?[^#]*?)(?:\.(md|html))?(#.*)?$/i);
+  const n = (m ? m[1] : link).replace(/^\/+/, "").replace(/\/$/, "");
+  const hash = (m && m[3]) || "";
+  let url;
+  if (clean) url = (n === "" || n === "index") ? "" : (n.endsWith("/index") ? n.slice(0, -5) : n + "/");
+  else url = (m && m[2]) ? n + ".html" : (n ? n + ".html" : "");
+  return withBase(url, base) + hash;
+}
+
+function heroHtml(data, base, clean) {
   const h = data.hero || {};
   const actions = Array.isArray(h.actions) ? h.actions : [];
   const btns = actions.map((a) => {
-    const link = withBase(String(a.link || "#").replace(/\.md(#|$)/, ".html$1"), base);
+    const link = siteLink(String(a.link || "#"), base, clean);
     const brand = (a.theme || "brand") === "brand";
     return `<a class="tp-hero-btn ${brand ? "tp-hero-brand" : "tp-hero-alt"}" href="${esc(link)}">${esc(a.text || "")}</a>`;
   }).join("");
@@ -138,7 +150,7 @@ export function renderPage({ contentHtml, toc, page, config, sidebar }) {
     : "";
 
   const isHome = page.layout === "home";
-  const homeHero = isHome ? heroHtml(page.data || {}, base) : "";
+  const homeHero = isHome ? heroHtml(page.data || {}, base, !!config.cleanUrls) : "";
 
   return `<!doctype html>
 <html lang="en">

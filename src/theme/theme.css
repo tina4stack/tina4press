@@ -3,7 +3,7 @@
   --tp-bg: #ffffff; --tp-bg-soft: #f6f7f9; --tp-bg-mute: #eceef1;
   --tp-border: #e2e5ea; --tp-border-2: #d2d7de;
   --tp-fg: #1c2430; --tp-fg-2: #4a5464; --tp-fg-3: #7a8494;
-  --tp-brand: #2f5fe0; --tp-brand-2: #4888ff;  /* tina4 logo blue */
+  --tp-brand: #2f5fe0; --tp-brand-2: #4888ff;  /* default brand (override via themeConfig.colors) */
   --tp-code-bg: #f4f5f7; --tp-sel: #dbe6ff;
   --tk-comment:#8a919e; --tk-string:#2f7d32; --tk-keyword:#2b5fd9;
   --tk-number:#b45a00; --tk-fn:#0b7285; --tk-key:#7b3fe4; --tk-tag:#c0392b; --tk-var:#7b3fe4;
@@ -142,6 +142,9 @@ a:hover { text-decoration: underline; }
   border-left-width: 3px; background: var(--tp-bg-soft); }
 .tp-callout-title { font-weight: 700; margin: 0 0 4px; font-size: 13px; }
 .tp-callout p:last-child { margin-bottom: 0; }
+.tp-cta { display: inline-block; margin-top: 8px; padding: 11px 22px; border-radius: 10px; font-weight: 600;
+  font-size: 15px; background: var(--tp-brand); color: #fff !important; }
+.tp-cta:hover { filter: brightness(1.06); text-decoration: none; }
 .tp-tip { border-left-color: var(--tp-brand); } .tp-tip .tp-callout-title { color: var(--tp-brand); }
 .tp-info, .tp-note { border-left-color: var(--tp-brand-2); } .tp-info .tp-callout-title,.tp-note .tp-callout-title{ color: var(--tp-brand-2); }
 .tp-warning { border-left-color: #e0a844; } .tp-warning .tp-callout-title { color: #e0a844; }
@@ -203,8 +206,10 @@ a:hover { text-decoration: underline; }
 
 /* built-in card grid */
 .tp-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 18px 0; }
-.tp-card { padding: 18px; border: 1px solid var(--tp-border); border-radius: 12px; background: var(--tp-bg-soft);
-  transition: border-color .15s, transform .1s; }
+.tp-card { min-width: 0; padding: 18px; border: 1px solid var(--tp-border); border-radius: 12px; background: var(--tp-bg-soft);
+  transition: border-color .15s, transform .1s; overflow: hidden; }
+.tp-card-body, .tp-card h3 { overflow-wrap: anywhere; }
+.tp-card code { white-space: normal; word-break: break-word; }
 .tp-card:hover { border-color: var(--tp-brand); transform: translateY(-1px); }
 .tp-card-ic { font-size: 22px; margin-bottom: 8px; }
 .tp-card h3 { margin: 0 0 6px; font-size: 16px; border: none; padding: 0; }

@@ -9,6 +9,7 @@ const DEFAULTS = {
   title: "Tina4press",
   description: "Docs built with tina4press",
   base: "/",
+  cleanUrls: false,   // true => /foo/ (dir index) + redirect stubs from /foo.html
   srcDir: "docs",
   outDir: "dist",
   themeConfig: {

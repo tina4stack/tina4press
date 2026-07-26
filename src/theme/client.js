@@ -181,7 +181,10 @@
   var chatCfg = window.__TP_CHAT__;
   if (chatCfg && chatCfg.api) {
     var api = chatCfg.api.replace(/\/+$/, "");
-    var lang = (location.pathname.match(/\/(python|php|ruby|nodejs|js|delphi)\//) || [])[1] || "";
+    var askPath = chatCfg.askPath || "/v1/ask";
+    // Generic: a static chat.language, else the first path segment as a hint
+    // (harmless for any docs site; the backend treats language as optional).
+    var lang = chatCfg.language || (location.pathname.match(/^\/([^/]+)\//) || [])[1] || "";
     var wrap = document.createElement("div");
     wrap.className = "tp-chat";
     wrap.innerHTML =
@@ -223,7 +226,7 @@
       var q = cin.value.trim(); if (!q) return;
       cin.value = ""; bubble("you", esc(q));
       var thinking = bubble("bot", "…");
-      fetch(api + "/v1/ask", {
+      fetch(api + askPath, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: q, language: lang || undefined, k: 6, stream: false }),
       }).then(function (r) { return r.json(); }).then(function (d) {

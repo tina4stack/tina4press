@@ -37,11 +37,60 @@ function kwSet(lang) {
   return new Set(src.split(/\s+/).filter(Boolean));
 }
 
-// Frond / Twig / Handlebars: highlight the delimiters but keep contents literal.
+// HTML + Twig/Frond/Handlebars, one line at a time. Highlights tags, attribute
+// names and quoted values, comments, and Frond `{% %}` / `{{ }}` blocks. Always
+// HTML-escaped, so it is safe to drop into <pre><code>.
 function frondish(line) {
-  return escapeHtml(line)
-    .replace(/(\{%[^%]*?%\})/g, '<span class="tk-tag">$1</span>')
-    .replace(/(\{\{[^}]*?\}\})/g, '<span class="tk-var">$1</span>');
+  let out = "";
+  let i = 0;
+  const n = line.length;
+  while (i < n) {
+    // Frond statement {% ... %}
+    if (line.startsWith("{%", i)) {
+      const j = line.indexOf("%}", i);
+      const end = j < 0 ? n : j + 2;
+      out += `<span class="tk-tag">${escapeHtml(line.slice(i, end))}</span>`;
+      i = end; continue;
+    }
+    // Frond variable {{ ... }}
+    if (line.startsWith("{{", i)) {
+      const j = line.indexOf("}}", i);
+      const end = j < 0 ? n : j + 2;
+      out += `<span class="tk-var">${escapeHtml(line.slice(i, end))}</span>`;
+      i = end; continue;
+    }
+    // HTML comment
+    if (line.startsWith("<!--", i)) {
+      const j = line.indexOf("-->", i);
+      const end = j < 0 ? n : j + 3;
+      out += `<span class="tk-comment">${escapeHtml(line.slice(i, end))}</span>`;
+      i = end; continue;
+    }
+    // Tag: <name ...attrs...> or </name>
+    const tag = line.slice(i).match(/^<\/?[a-zA-Z][\w:-]*/);
+    if (tag) {
+      out += `<span class="tk-keyword">${escapeHtml(tag[0])}</span>`;
+      i += tag[0].length;
+      // attributes until '>' (or end of line)
+      while (i < n && line[i] !== ">") {
+        const ch = line[i];
+        if (line.startsWith("{{", i) || line.startsWith("{%", i)) break; // let outer loop color it
+        if (ch === '"' || ch === "'") {
+          let k = i + 1;
+          while (k < n && line[k] !== ch) k++;
+          out += `<span class="tk-string">${escapeHtml(line.slice(i, Math.min(k + 1, n)))}</span>`;
+          i = k + 1; continue;
+        }
+        const name = line.slice(i).match(/^[a-zA-Z_:@][\w:.-]*/);
+        if (name) { out += `<span class="tk-fn">${escapeHtml(name[0])}</span>`; i += name[0].length; continue; }
+        out += escapeHtml(ch); i++;
+      }
+      if (i < n && line[i] === ">") { out += "&gt;"; i++; }
+      continue;
+    }
+    out += escapeHtml(line[i]); i++;
+  }
+  return out || "&nbsp;";
 }
 
 export function highlight(line, language = "") {

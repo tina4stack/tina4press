@@ -1,6 +1,6 @@
 {
   "name": "tina4press",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A zero-Vue static site generator for documentation, built on tina4-js. VitePress-like, but code is sacred: template syntax in code blocks (Frond {% %}, {{ }}) is never interpreted.",
   "type": "module",
   "license": "MIT",
