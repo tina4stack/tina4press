@@ -123,7 +123,13 @@ a:hover { text-decoration: underline; }
 .tp-line { display: block; padding: 0 2px; }
 .tp-line.tp-hl { background: color-mix(in srgb, var(--tp-brand) 14%, transparent);
   box-shadow: inset 3px 0 0 var(--tp-brand); margin: 0 -16px; padding: 0 16px; }
-.tp-lang { position: absolute; bottom: 6px; right: 12px; font-size: 10px; text-transform: uppercase;
+/* The copy button (top:8 + 28px tall) and the lang label (bottom:6) both live on
+   the right edge. On a one-line block the box is ~44px tall, so they overlapped.
+   Reserve enough height that the two bands can never meet, and fade the label
+   out on hover when the button goes fully opaque. */
+.tp-code { min-height: 62px; }
+.tp-code:hover .tp-lang { opacity: 0; }
+.tp-lang { transition: opacity .12s; position: absolute; bottom: 6px; right: 12px; font-size: 10px; text-transform: uppercase;
   color: var(--tp-fg-3); letter-spacing: .06em; pointer-events: none; opacity: .7; }
 .tp-code-title ~ .tp-lang { display: none; } /* filename bar already names it */
 .tp-copy { position: absolute; top: 8px; right: 8px; display: grid; place-items: center;
@@ -157,9 +163,12 @@ a:hover { text-decoration: underline; }
 
 /* home hero + features */
 .tp-home .tp-main { padding: 0; max-width: 1152px; margin: 0 auto; width: 100%; }
-.tp-content-home { max-width: none; padding: 20px 24px 40px; }
-.tp-hero { display: flex; align-items: center; gap: 40px; padding: 64px 24px 40px; max-width: 1152px;
+.tp-content-home { max-width: none; padding: 8px 24px 40px; }
+.tp-hero { display: flex; align-items: center; gap: 40px; padding: 40px 24px 24px; max-width: 1152px;
   margin: 0 auto; flex-wrap: wrap; }
+/* The first section after the hero is the page's hook - don't push it below the
+   fold with a full h2 margin + rule on top of the hero's own bottom padding. */
+.tp-content-home > h2:first-child { margin-top: 4px; padding-top: 0; border-top: none; }
 .tp-hero-text { flex: 1 1 340px; }
 .tp-hero-name { font-size: 56px; line-height: 1.1; margin: 0; letter-spacing: -1px;
   background: linear-gradient(120deg, var(--tp-brand), var(--tp-brand-2)); -webkit-background-clip: text;
