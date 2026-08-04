@@ -4,7 +4,7 @@
 
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, watch } from "node:fs";
-import { join, extname } from "node:path";
+import { join, extname, relative, isAbsolute, sep } from "node:path";
 import { build } from "./build.js";
 
 const MIME = {
@@ -32,7 +32,40 @@ export function dev(config, port = 5180) {
   };
   // Watch only the source content — never the output dir, or each build's
   // writes would retrigger a build in an endless loop.
-  if (existsSync(config.srcPath)) watch(config.srcPath, { recursive: true }, rebuild);
+  //
+  // That was the intent, but nothing enforced it. outDir normally lives INSIDE
+  // srcDir (the default shape is srcDir "docs" with outDir
+  // "docs/.vitepress/dist"), so watching srcPath watched the output too: every
+  // build wrote into the watched tree, the watcher fired, and it rebuilt
+  // forever. The site flashed on a loop, each rebuild pushed an SSE reload so
+  // the browser re-fetched everything continuously, and a concurrent
+  // `tina4press build` raced the loop for the same directory and failed.
+  //
+  // Anything under the output directory is now ignored. Paths from fs.watch
+  // are relative to the watched root, which is exactly what `relative` gives.
+  const outRelative = relative(config.srcPath, config.outPath);
+  const outIsInsideSrc =
+    outRelative && !outRelative.startsWith("..") && !isAbsolute(outRelative);
+
+  const onSourceChange = (event, filename) => {
+    if (outIsInsideSrc && filename) {
+      const changed = String(filename);
+      // Match the directory itself and everything beneath it. Both separators
+      // are checked because fs.watch reports platform-native paths.
+      if (
+        changed === outRelative ||
+        changed.startsWith(outRelative + sep) ||
+        changed.startsWith(outRelative + "/")
+      ) {
+        return;
+      }
+    }
+    rebuild();
+  };
+
+  if (existsSync(config.srcPath)) {
+    watch(config.srcPath, { recursive: true }, onSourceChange);
+  }
 
   const server = createServer((req, res) => {
     const url = decodeURIComponent(req.url.split("?")[0]);
