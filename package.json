@@ -9,15 +9,18 @@
     "tina4press": "./bin/tina4press.js"
   },
   "scripts": {
+    "test": "node --test \"test/*.test.js\"",
     "example:build": "node bin/tina4press.js build example",
-    "example:dev": "node bin/tina4press.js dev example"
+    "example:dev": "node bin/tina4press.js dev example",
+    "prepublishOnly": "npm test"
   },
   "dependencies": {
     "tina4js": "^1.5.1"
   },
   "files": [
     "bin",
-    "src"
+    "src",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=18"
