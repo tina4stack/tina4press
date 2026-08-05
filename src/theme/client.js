@@ -215,7 +215,13 @@
       var h = esc(t);
       h = h.replace(/```(\w*)\n([\s\S]*?)```/g, function (_, l, c) { return "<pre><code>" + c.replace(/\n$/, "") + "</code></pre>"; });
       h = h.replace(/`([^`]+)`/g, "<code>$1</code>");
-      h = h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+      h = h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (_, text, url) {
+        // CommonMark [text](<url>): strip angle-bracket delimiters. esc() ran first, so
+        // they arrive as &lt;/&gt; — handle both. Then drop stray trailing punctuation an
+        // LLM sometimes appends. Without this a `[source](<…md>)` becomes a `…md>` 404.
+        url = url.replace(/^(?:&lt;|<)+/, "").replace(/(?:&gt;|>)+$/, "").replace(/[.,;:!?]+$/, "");
+        return '<a href="' + url + '" target="_blank" rel="noreferrer">' + text + '</a>';
+      });
       h = h.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
       // don't turn <br> inside <pre> blocks
       h = h.replace(/\n/g, "<br>");
@@ -231,6 +237,25 @@
         body: JSON.stringify({ query: q, language: lang || undefined, k: 6, stream: false }),
       }).then(function (r) { return r.json(); }).then(function (d) {
         thinking.innerHTML = md(d.answer || d.response || d.text || "(no answer)");
+        // Render the structured sources[] as clean clickable citations (always valid URLs,
+        // unlike inline links an LLM might mangle). Deduplicated by URL.
+        var srcs = (d.sources || []).filter(function (s) { return s && s.url; });
+        if (srcs.length) {
+          var seen = {}, items = "";
+          for (var i = 0; i < srcs.length; i++) {
+            var u = srcs[i].url; if (seen[u]) continue; seen[u] = 1;
+            // drop the trailing "(path)" the backend appends to titles for a cleaner label
+            var label = (srcs[i].title || u).replace(/\s*\([^)]*\)\s*$/, "");
+            items += '<a class="tp-chat-src" href="' + esc(u) + '" target="_blank" rel="noreferrer">' +
+                     esc(label) + "</a>";
+          }
+          if (items) {
+            var sb = document.createElement("div");
+            sb.className = "tp-chat-sources";
+            sb.innerHTML = '<div class="tp-chat-sources-label">Sources</div>' + items;
+            log.appendChild(sb);
+          }
+        }
         log.scrollTop = log.scrollHeight;
       }).catch(function () { thinking.textContent = "Sorry — the assistant is unreachable right now."; });
     });

@@ -270,6 +270,11 @@ a:hover { text-decoration: underline; }
 .tp-chat-bot pre { background: var(--tp-code-bg); border: 1px solid var(--tp-border); border-radius: 6px; padding: 8px 10px;
   overflow-x: auto; font-size: 12px; margin: 6px 0; }
 .tp-chat-bot code { font-family: var(--tp-mono); font-size: 12px; }
+.tp-chat-sources { align-self: flex-start; max-width: 90%; display: flex; flex-direction: column; gap: 4px; }
+.tp-chat-sources-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--tp-fg-3); }
+.tp-chat-src { font-size: 12px; color: var(--tp-brand); background: var(--tp-bg-soft); border: 1px solid var(--tp-border);
+  border-radius: 6px; padding: 4px 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tp-chat-src:hover { border-color: var(--tp-brand-2); }
 .tp-chat-form { display: flex; gap: 6px; padding: 10px; border-top: 1px solid var(--tp-border); }
 .tp-chat-input { flex: 1; padding: 8px 12px; background: var(--tp-bg-soft); border: 1px solid var(--tp-border-2);
   border-radius: 8px; color: var(--tp-fg); outline: none; font-size: 13px; }
