@@ -45,21 +45,52 @@ function withBase(link, base) {
   return (base.replace(/\/$/, "") + "/" + link.replace(/^\//, "")).replace(/\/{2,}/g, "/");
 }
 
-// Map friendly config color keys -> CSS variables. Anything the site omits
-// falls back to the theme.css defaults, so a site can retheme with one or two
-// values (themeConfig.colors.light.brand = '#...').
+// ---------------------------------------------------------------------------
+// The theme token contract.
+//
+// These key names are the PUBLIC API of the theme and are FROZEN: new keys may
+// be added, existing ones are never renamed. VitePress renamed --vp-c-brand to
+// --vp-c-brand-1 and broke every site's custom.css at once; that must not
+// happen here. Anything a site omits falls back to the theme.css default, so a
+// one-line override is a valid config.
+// ---------------------------------------------------------------------------
 const COLOR_VARS = {
   brand: "--tp-brand", brand2: "--tp-brand-2", bg: "--tp-bg", bgSoft: "--tp-bg-soft",
   bgMute: "--tp-bg-mute", border: "--tp-border", border2: "--tp-border-2",
   fg: "--tp-fg", fg2: "--tp-fg-2", fg3: "--tp-fg-3", codeBg: "--tp-code-bg", sel: "--tp-sel",
+  // text that sits ON the brand colour. Was hardcoded #fff, which is unreadable
+  // the moment a site picks a light brand.
+  onBrand: "--tp-on-brand",
+  warning: "--tp-warning", danger: "--tp-danger", shadow: "--tp-shadow",
 };
+// Syntax highlighting, under colors.<mode>.code.*
+const CODE_VARS = {
+  comment: "--tk-comment", string: "--tk-string", keyword: "--tk-keyword",
+  number: "--tk-number", fn: "--tk-fn", key: "--tk-key", tag: "--tk-tag", var: "--tk-var",
+};
+// Not light/dark specific — these live on :root once.
+const FONT_VARS = { body: "--tp-font", mono: "--tp-mono" };
+const LAYOUT_VARS = {
+  maxWidth: "--tp-max", contentWidth: "--tp-content",
+  sidebarWidth: "--tp-sidebar-w", tocWidth: "--tp-toc-w",
+};
+
+// A config value is going straight into a <style> block, so strip the
+// characters that could close the rule, close the element, or start an import.
+// Quotes and commas survive because a font stack needs them.
+const cssValue = (v) => String(v).replace(/[<>{};@]/g, "").trim();
+
+function declsFrom(map, obj) {
+  if (!obj || typeof obj !== "object") return [];
+  return Object.entries(obj)
+    .filter(([k]) => map[k])
+    .map(([k, v]) => `${map[k]}:${cssValue(v)}`);
+}
+
 function colorBlock(selector, colors) {
   if (!colors) return "";
-  const decls = Object.entries(colors)
-    .filter(([k]) => COLOR_VARS[k])
-    .map(([k, v]) => `${COLOR_VARS[k]}:${String(v).replace(/[<>]/g, "")}`)
-    .join(";");
-  return decls ? `${selector}{${decls}}` : "";
+  const decls = [...declsFrom(COLOR_VARS, colors), ...declsFrom(CODE_VARS, colors.code)];
+  return decls.length ? `${selector}{${decls.join(";")}}` : "";
 }
 // Google Analytics (gtag). themeConfig.analytics = 'G-XXXX' or { ga: 'G-XXXX' }.
 function analyticsScript(themeConfig) {
@@ -88,10 +119,32 @@ function headHtml(config) {
 
 function colorStyle(themeConfig) {
   const c = themeConfig.colors;
-  if (!c) return "";
-  const light = colorBlock(":root", c.light || c);   // flat object = light
-  const dark = colorBlock(':root[data-theme="dark"]', c.dark);
-  return light || dark ? `<style id="tp-colors">${light}${dark}</style>` : "";
+  const root = [
+    ...declsFrom(FONT_VARS, themeConfig.fonts),
+    ...declsFrom(LAYOUT_VARS, themeConfig.layout),
+  ];
+  // A flat colors object (no light/dark keys) is treated as light.
+  const light = c ? colorBlock(":root", c.light || c) : "";
+  const dark = c ? colorBlock(':root[data-theme="dark"]', c.dark) : "";
+  const rootBlock = root.length ? `:root{${root.join(";")}}` : "";
+  const all = rootBlock + light + dark;
+  return all ? `<style id="tp-colors">${all}</style>` : "";
+}
+
+// Named layout slots. A slot value is an HTML STRING (or a function returning
+// one) — never a component. That is deliberate: VitePress slots needed Vue
+// component overrides, which is the dependency tina4press exists to avoid, and
+// they broke on upgrade. A string cannot break on upgrade.
+const SLOTS = [
+  "headerStart", "headerEnd", "sidebarTop", "sidebarBottom",
+  "contentTop", "contentBottom", "footer",
+];
+function slot(themeConfig, name, page) {
+  const all = themeConfig.slots;
+  if (!all || !SLOTS.includes(name)) return "";
+  const v = all[name];
+  if (!v) return "";
+  return typeof v === "function" ? String(v(page) || "") : String(v);
 }
 
 // VitePress-style home hero + features, from frontmatter.
@@ -160,6 +213,7 @@ export function renderPage({ contentHtml, toc, page, config, sidebar }) {
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(page.description || config.description)}">
 <link rel="stylesheet" href="${esc(asset("theme.css"))}">
+${(config.customCssFiles || []).map((f) => `<link rel="stylesheet" href="${esc(asset(f))}">`).join("")}
 ${colorStyle(tc)}
 ${headHtml(config)}
 ${analyticsScript(tc)}
@@ -173,8 +227,10 @@ ${tc.logo ? `<link rel="icon" href="${esc(withBase(tc.logo, base))}">` : ""}
       ${tc.logo ? `<img class="tp-logo" src="${esc(withBase(tc.logo, base))}" alt="">` : `<span class="tp-brand-mark">◈</span>`}
       <span class="tp-brand-name">${esc(config.title)}</span>
     </a>
+    ${slot(tc, "headerStart", page)}
     <nav class="tp-nav">${navHtml(tc.nav, base)}</nav>
     <div class="tp-header-actions">
+      ${slot(tc, "headerEnd", page)}
       ${tc.search ? `<button class="tp-search-btn" id="tp-search-open" aria-label="Search">🔍 <span class="tp-search-hint">Search</span><kbd>⌘K</kbd></button>` : ""}
       <button class="tp-theme-toggle" id="tp-theme-toggle" aria-label="Toggle theme"></button>
       <button class="tp-menu-toggle" id="tp-menu-toggle" aria-label="Menu">☰</button>
@@ -186,11 +242,13 @@ ${tc.logo ? `<link rel="icon" href="${esc(withBase(tc.logo, base))}">` : ""}
   ${sidebar && sidebar.length ? `<div class="tp-mobile-side">${sidebarHtml(sidebar, page.url, base)}</div>` : ""}
 </div>
 <div class="tp-body${isHome ? " tp-home" : ""}">
-  ${isHome ? "" : `<aside class="tp-sidebar" id="tp-sidebar"><div class="tp-sidebar-in">${sidebarHtml(sidebar, page.url, base)}</div></aside>`}
+  ${isHome ? "" : `<aside class="tp-sidebar" id="tp-sidebar"><div class="tp-sidebar-in">${slot(tc, "sidebarTop", page)}${sidebarHtml(sidebar, page.url, base)}${slot(tc, "sidebarBottom", page)}</div></aside>`}
   <main class="tp-main">
     ${homeHero}
+    ${slot(tc, "contentTop", page)}
     <article class="tp-content${isHome ? " tp-content-home" : ""}">${contentHtml}</article>
-    ${isHome ? "" : `<div class="tp-page-foot">${editLink}${tc.footer ? `<p class="tp-footer">${tc.footer}</p>` : ""}</div>`}
+    ${slot(tc, "contentBottom", page)}
+    ${isHome ? "" : `<div class="tp-page-foot">${editLink}${tc.footer ? `<p class="tp-footer">${tc.footer}</p>` : ""}${slot(tc, "footer", page)}</div>`}
   </main>
   ${isHome ? "" : tocHtml(toc)}
 </div>

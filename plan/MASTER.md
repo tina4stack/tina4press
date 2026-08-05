@@ -26,7 +26,7 @@ CSS, all static HTML underneath, and the whole site works with JavaScript off.
 |---|------|------|--------|
 | 00 | Test harness and corpus conformance | [00-test-harness.md](tina4press/plan/00-test-harness.md) | ⚠️ Partial |
 | 01 | Parser correctness | [01-parser-correctness.md](tina4press/plan/01-parser-correctness.md) | ✅ Done (v0.1.11) |
-| 02 | Theming that does not break | [02-theming.md](tina4press/plan/02-theming.md) | ❌ BUILD |
+| 02 | Theming that does not break | [02-theming.md](tina4press/plan/02-theming.md) | ✅ Done |
 | 03 | i18n on tina4-js localization | [03-i18n.md](tina4press/plan/03-i18n.md) | ❌ BUILD |
 | 04 | Site furniture (nav, SEO, social) | [04-site-furniture.md](tina4press/plan/04-site-furniture.md) | ❌ BUILD |
 | 05 | Delivery and performance | [05-delivery-performance.md](tina4press/plan/05-delivery-performance.md) | ❌ BUILD |
@@ -57,8 +57,8 @@ Parity here is measured against VitePress, not against four languages.
 | Dead-link checking | ✅ | ❌ | 16 broken + 126 dead anchors ship silently, task 04 |
 | Content-hashed assets | ✅ | ❌ | stale CSS after deploy, task 05 |
 | i18n | ✅ | ❌ | task 03 |
-| Custom CSS hook | ✅ | ❌ | task 02 |
-| Layout slots | ✅ (Vue) | ❌ | task 02, plain HTML strings not components |
+| Custom CSS hook | ✅ | ✅ | `customCss` |
+| Layout slots | ✅ (Vue) | ✅ | 7 named slots, plain HTML strings not components |
 | Ships a framework runtime to the reader | ❌ Vue | ✅ none | 27 KB tina4-js, no Vue |
 
 ## Bugs

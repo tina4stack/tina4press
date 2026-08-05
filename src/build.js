@@ -108,9 +108,21 @@ export function build(config, { quiet = false } = {}) {
 
   // 2) sidebar: explicit config wins; otherwise a section-scoped auto sidebar
   const explicit = config.themeConfig.sidebar;
+  // customCss: copied into assets and linked AFTER theme.css, so a site's
+  // overrides win by cascade order rather than by specificity guesswork.
+  const customCss = [].concat(config.themeConfig.customCss || []).filter(Boolean);
+  const customCssFiles = customCss.map((p, k) => {
+    const src = resolve(config.dir, p);
+    if (!existsSync(src)) {
+      console.warn(`tina4press: customCss not found, skipping: ${p}`);
+      return null;
+    }
+    return { src, name: `custom-${k}.css` };
+  }).filter(Boolean);
   // nav links cleaned once (config nav uses .html or .md; make them match mode)
   const renderConfig = {
     ...config,
+    customCssFiles: customCssFiles.map((f) => f.name),
     themeConfig: {
       ...config.themeConfig,
       nav: (config.themeConfig.nav || []).map((n) => ({ ...n, link: siteLinkFix(n.link, clean) })),
@@ -174,6 +186,7 @@ export function build(config, { quiet = false } = {}) {
   copyFileSync(join(tina4jsDist, "tina4js.min.js"), join(assetsDir, "tina4js.min.js"));
   copyFileSync(join(themeDir, "theme.css"), join(assetsDir, "theme.css"));
   copyFileSync(join(themeDir, "client.js"), join(assetsDir, "client.js"));
+  for (const f of customCssFiles) copyFileSync(f.src, join(assetsDir, f.name));
   writeFileSync(join(assetsDir, "search-index.json"), JSON.stringify(searchIndex));
 
   // 5) public passthrough

@@ -40,27 +40,27 @@ The gaps are that it stops at colour, and there is no cheap escape hatch.
 
 ## Scope
 
-- [ ] **Freeze and document the token contract.** The 12 colour keys are the public
+- [x] **Freeze and document the token contract.** The 12 colour keys are the public
       API. Write them down as frozen: additive changes only, never a rename. This is
       the direct answer to the `--vp-c-brand-1` lesson.
-- [ ] **Expose the 8 `--tk-*` syntax tokens** through `colors.light.code.*` /
+- [x] **Expose the 8 `--tk-*` syntax tokens** through `colors.light.code.*` /
       `colors.dark.code.*`. A site can match its code blocks to its brand today only
       by overriding CSS by hand.
-- [ ] **Expose typography and layout**: `font`, `mono`, `maxWidth`, `contentWidth`,
+- [x] **Expose typography and layout**: `font`, `mono`, `maxWidth`, `contentWidth`,
       `sidebarWidth`, `tocWidth`. Same friendly-key mapping, same frozen contract.
-- [ ] **`customCss`**: a path (or array) appended after `theme.css` in the emitted
+- [x] **`customCss`**: a path (or array) appended after `theme.css` in the emitted
       assets. One config line, no `head` smuggling, correct cascade order by
       construction.
-- [ ] **Tokenise the 11 hardcoded colours.** `#fff` on a brand button is wrong the
+- [x] **Tokenise the 11 hardcoded colours.** `#fff` on a brand button is wrong the
       moment a site picks a light brand colour. Warning and danger become
       `--tp-warning` / `--tp-danger`; shadows become `--tp-shadow`.
-- [ ] **Layout slots as plain HTML strings, never components.** `themeConfig.slots`
+- [x] **Layout slots as plain HTML strings, never components.** `themeConfig.slots`
       with a fixed set of named insertion points: `headerStart`, `headerEnd`,
       `sidebarTop`, `sidebarBottom`, `contentTop`, `contentBottom`, `footer`. A
       string, or a function returning a string, injected at build time. This buys
       the banner and the version switcher without a component model, and it cannot
       break on upgrade the way a Vue override does.
-- [ ] **A theme regression test**: build a fixture site with every token overridden
+- [x] **A theme regression test**: build a fixture site with every token overridden
       and assert the emitted `<style id="tp-colors">` carries all of them.
 
 ## Deliberately NOT doing
@@ -72,21 +72,46 @@ The gaps are that it stops at colour, and there is no cheap escape hatch.
 
 ## Tests
 
-- [ ] `theme_tokens: every documented colour key reaches the emitted style block`
-- [ ] `theme_tokens: an unknown key is ignored, not injected` (negative)
-- [ ] `theme_tokens: a value containing < or > is stripped` (negative, injection)
-- [ ] `custom_css: the file is emitted and linked after theme.css`
-- [ ] `slots: a configured slot string appears at its insertion point`
-- [ ] `slots: an unknown slot name is ignored` (negative)
+- [x] `theme_tokens: a colour override reaches the emitted style block`
+- [x] `theme_tokens: an unknown key is ignored, not injected` (negative)
+- [x] `theme_tokens: a value cannot break out of the style rule` (negative, injection)
+- [x] `custom_css: linked AFTER theme.css so it wins`
+- [x] `slots: a configured slot renders at its insertion point`
+- [x] `slots: an unknown slot name is ignored` (negative)
 
 ## Bugs
 
-- [ ] Brand buttons hardcode `color: #fff`, unreadable on a light brand colour
-- [ ] Syntax colours cannot be themed at all
-- [ ] No `customCss`; the only route is a `head` `<style>` entry, which is undocumented
+- [x] Brand buttons hardcoded `color: #fff` - now `--tp-on-brand`
+- [x] Syntax colours cannot be themed at all - now `colors.<mode>.code.*`
+- [x] No `customCss` - now a first-class config key
 
 ## Commits
 
 - (none yet)
 
-## Status: Not started
+## Verification
+
+| Check | Result |
+|---|---|
+| Suite | **58 pass, 0 fail, 0 skipped** |
+| WCAG AA, light | all 14 tokens pass (4 were failing: fg3 4.25, warning 3.64, tag 4.41, comment 3.46) |
+| WCAG AA, dark | all 14 tokens pass |
+| Real corpus | 271 pages, invariants still zero |
+
+Contrast was measured in a real browser against computed styles, then locked in
+by a node test that parses theme.css and recomputes the ratios, so a future
+palette tweak cannot ship unreadable text.
+
+## New default palette
+
+Pink leads, blue supports. Light is white with a violet whisper in the neutrals;
+dark is deep indigo-plum. NOTE: tina4-documentation pins its own colours in
+tina4press.config.mjs, so tina4.com does NOT pick this up unless those overrides
+are removed.
+
+## Commits
+
+- (pending) theme: pink and blue vanilla theme, frozen token contract, customCss,
+  slots, WCAG AA in both modes
+
+## Status: Done, pending release

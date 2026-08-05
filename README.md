@@ -352,28 +352,80 @@ becomes a citation link under the answer.
 
 ## Theming
 
-The theme runs on CSS custom properties. Override one and the rest hold.
+The default theme is pink and blue: pink leads on links, active state and
+buttons, blue supports on informational notes and the far end of the hero
+gradient. Light mode is white with a whisper of violet in the neutrals; dark mode
+is a deep indigo-plum rather than another blue-grey. Every colour in both themes
+meets WCAG AA contrast on the surface it actually sits on, and a test enforces
+that, so a palette tweak cannot quietly ship unreadable text.
+
+Nothing in the stylesheet hardcodes a colour. A one-line brand override retints
+the whole site, code blocks included.
 
 ```js
 themeConfig: {
   colors: {
-    light: { brand: "#2f5fe0" },
-    dark:  { brand: "#8db4ff", bg: "#17130f" },
+    light: { brand: "#d92b7a" },
+    dark:  { brand: "#ff8ab8", bg: "#131022" },
   },
 }
 ```
 
-| Key | Variable |
+**The token names below are frozen.** New ones may be added; existing ones are
+never renamed. VitePress renamed `--vp-c-brand` to `--vp-c-brand-1` and broke
+every site's custom CSS at once. That will not happen here.
+
+| Key | What it colours |
 |---|---|
-| `brand`, `brand2` | Accent and hover accent |
-| `bg`, `bgSoft`, `bgMute` | Page, panel, and inset backgrounds |
+| `brand`, `brand2` | Primary accent and its partner |
+| `onBrand` | Text sitting on a brand-coloured surface |
+| `bg`, `bgSoft`, `bgMute` | Page, panel and inset backgrounds |
 | `border`, `border2` | Hairlines and stronger edges |
-| `fg`, `fg2`, `fg3` | Body, secondary, and muted text |
-| `codeBg` | Code block background |
-| `sel` | Text selection |
+| `fg`, `fg2`, `fg3` | Body, secondary and muted text |
+| `warning`, `danger` | Callout accents |
+| `codeBg`, `sel`, `shadow` | Code surface, selection, shadow tint |
+| `code.*` | Syntax colours: `comment`, `string`, `keyword`, `number`, `fn`, `key`, `tag`, `var` |
+
+Fonts and layout are separate, since neither is light/dark specific:
+
+```js
+themeConfig: {
+  fonts: { body: "Inter, sans-serif", mono: "JetBrains Mono, monospace" },
+  layout: { maxWidth: "1440px", contentWidth: "720px",
+            sidebarWidth: "272px", tocWidth: "224px" },
+}
+```
+
+### Custom CSS
+
+```js
+themeConfig: { customCss: "docs/custom.css" }   // or an array
+```
+
+Copied into the output and linked after `theme.css`, so your rules win by
+cascade order instead of specificity guesswork.
+
+### Slots
+
+Inject your own markup at fixed points. A slot is an HTML **string**, or a
+function of the page returning one. Never a component: component overrides are
+what made VitePress theming break on upgrade, and a string cannot break.
+
+```js
+themeConfig: {
+  slots: {
+    headerEnd: '<a href="/changelog/">v3</a>',
+    contentBottom: (page) => `<p>Edit ${page.relPath}</p>`,
+  },
+}
+```
+
+Available: `headerStart`, `headerEnd`, `sidebarTop`, `sidebarBottom`,
+`contentTop`, `contentBottom`, `footer`. An unknown name is ignored.
 
 Dark mode persists to `localStorage` and applies through an inline script before
-first paint, so a returning reader never sees a white flash.
+first paint, so a returning reader never sees a white flash. The theme also
+honours `prefers-reduced-motion` and ships print styles.
 
 ## Clean URLs
 
@@ -422,7 +474,7 @@ Every one of those is covered by a named regression test. Run `npm test`.
 
 ## Known limitations
 
-Honest list, current as of 0.1.10. Tracked in
+Honest list, current as of 0.1.12. Tracked in
 [`plan/MASTER.md`](plan/MASTER.md).
 
 - **No i18n yet.** One locale per site. Planned on tina4-js localization, which is
@@ -436,8 +488,8 @@ Honest list, current as of 0.1.10. Tracked in
 - **Asset filenames are not content-hashed**, so a theme change can serve stale CSS
   to a returning reader until their cache expires.
 - **Setext headings** (`Title` over `=====`) are not supported. Use `#`.
-- **Theming stops at colour.** Twelve colour keys are configurable; syntax
-  highlighting colours, fonts and layout widths need a CSS override.
+- **Tabs have no ARIA roles or keyboard navigation**, and the search modal does
+  not trap focus. Both are queued.
 
 ## Our Sponsors
 
