@@ -105,6 +105,9 @@ export default {
 | `title` | `"Tina4press"` | Site name. Shows in the header and every page title. |
 | `description` | `"Docs built with tina4press"` | Fallback meta description. |
 | `base` | `"/"` | URL prefix. Set it when the site lives under a subpath. |
+| `hostname` | none | `"https://example.com"`. Required for `sitemap.xml`. |
+| `robots` | none | Replaces the default `robots.txt` rules wholesale. |
+| `locales` | none | Multi-language sites. See below. |
 | `srcDir` | `"docs"` | Where the Markdown lives, relative to the config file. |
 | `outDir` | `"dist"` | Where the HTML lands, relative to the config file. |
 | `cleanUrls` | `false` | Directory-style URLs. See below. |
@@ -445,6 +448,92 @@ Writing `.htaccess` on every build is deliberate. A host that extracts an archiv
 over the web root without clearing it leaves the previous `.htaccess` in place,
 and stale rewrite rules outlive the deploy that created them.
 
+## Multiple languages
+
+One page tree per locale. A French reader downloads French prose and nothing
+else, which is the whole point of not shipping a framework runtime.
+
+```
+docs/
+  index.md            guide/routing.md        # root locale, served at /
+  fr/index.md         fr/guide/routing.md     # served at /fr/
+  ar/index.md                                 # served at /ar/
+```
+
+```js
+export default {
+  locales: {
+    root: { label: "English", lang: "en" },
+    fr: {
+      label: "Français", lang: "fr",
+      title: "Docs FR",
+      themeConfig: {
+        nav: [{ text: "Guide", link: "/fr/guide/" }],
+        messages: { tocTitle: "Sur cette page", tip: "Astuce" },
+      },
+    },
+    ar: { label: "العربية", lang: "ar" },   // dir="rtl" is detected
+  },
+};
+```
+
+A locale may override `title`, `description`, `lang`, `dir`, and any
+`themeConfig` key. Anything it leaves out is inherited, so a locale entry can be
+one line.
+
+What you get:
+
+- `<html lang>` and `<html dir>` per page, with right-to-left detected from the
+  language subtag (`ar`, `he`, `fa`, `ur`, and the rest)
+- `<link rel="alternate" hreflang>` between real translations, so a crawler
+  knows the pages are the same document
+- A locale switcher in the header. It links to the same page in the other
+  language when a translation exists, and to that locale's home when it does
+  not, so the switcher can never point at a 404
+- A sidebar built only from that locale's pages
+- Search scoped to the reader's locale
+- `sitemap.xml` covering every locale
+
+### Translating the interface
+
+Container titles (`Tip`, `Warning`) are baked into the HTML at build time.
+The rest of the chrome is resolved at build time too, and the same bundle is
+handed to the browser for the strings only JavaScript produces.
+
+Override any of them per locale under `themeConfig.messages`:
+
+`tocTitle`, `editLink`, `search`, `searchPlaceholder`, `searchEmpty`,
+`searchNoResults`, `searchNavigate`, `searchOpen`, `searchClose`, `menu`,
+`toggleTheme`, `copyCode`, `permalink`, `overview`, `more`, `reference`,
+`chatLabel`, `chatPlaceholder`, `chatSources`, `chatError`, `tip`, `info`,
+`note`, `warning`, `danger`, `details`.
+
+An untranslated key falls back to English rather than showing a raw key.
+
+Switching locale is navigation, not state: `/fr/guide/` is a different page. So
+there is no runtime locale toggle re-rendering the page, which would mean
+shipping every language to every reader.
+
+## Search engines
+
+Set `hostname` and the build emits a sitemap:
+
+```js
+export default { hostname: "https://tina4.com" };
+```
+
+- **`sitemap.xml`** — every page, absolute URLs, all locales. Exclude a page
+  with `sitemap: false` in its frontmatter.
+- **`robots.txt`** — always emitted. Allows everything and points at the
+  sitemap. Replace the rules with `robots` in config.
+
+Without a `hostname` the build says so and skips the sitemap rather than
+emitting one with relative URLs, which crawlers reject.
+
+No `lastmod`. On a CI checkout every file's mtime is the checkout time, so a
+mtime-derived `lastmod` would tell crawlers all your pages changed today. Real
+dates need git history, and that is a later job.
+
 ## Deploying
 
 Build, then publish the output directory. Nothing at runtime needs Node.
@@ -469,22 +558,36 @@ Beyond the basics, tina4press handles the cases a docs site actually hits:
 - Task lists: `- [ ]` and `- [x]` render real checkboxes
 - Backslash escapes: `\*not emphasis\*`
 - A pipe inside inline code stays in its table cell
+- Author-pinned heading ids win: both `### Title <a id="x"></a>` and VitePress
+  `### Title {#x}`, so cross-references survive a migration
+- A heading slug starting with a digit gets VitePress's `_` prefix
 
 Every one of those is covered by a named regression test. Run `npm test`.
 
+## Dead links
+
+Every build resolves every internal link and every `#anchor` against the pages it
+just rendered, and reports what does not exist. Code samples and generated
+`<head>` assets are excluded, so an `<a href="...">` in a tutorial is not a
+false positive.
+
+```bash
+tina4press build .            # reports broken links, still exits 0
+tina4press build . --strict   # exits 1, so CI fails on rot
+```
+
+Turning this on against tina4.com found 15 broken links and 119 dead anchors
+that had been shipping silently.
+
 ## Known limitations
 
-Honest list, current as of 0.1.12. Tracked in
+Honest list, current as of 0.1.14. Tracked in
 [`plan/MASTER.md`](plan/MASTER.md).
 
-- **No i18n yet.** One locale per site. Planned on tina4-js localization, which is
-  already in the bundle tina4press ships.
 - **No prev and next page navigation.**
-- **No `sitemap.xml`, `robots.txt`, or `404.html`.**
+- **No `404.html`.**
 - **No canonical or Open Graph tags**, and a page without a frontmatter
   `description` falls back to the site description.
-- **No dead-link checking.** A link to a page that does not exist is rewritten and
-  shipped without a warning.
 - **Asset filenames are not content-hashed**, so a theme change can serve stale CSS
   to a returning reader until their cache expires.
 - **Setext headings** (`Title` over `=====`) are not supported. Use `#`.

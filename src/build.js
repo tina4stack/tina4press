@@ -11,6 +11,8 @@ import { parseFrontmatter } from "./frontmatter.js";
 import { autoSectionSidebar, resolveSidebar, titleFromPage } from "./sidebar.js";
 import { renderPage } from "./theme/layout.js";
 import { collectPageLinks, checkLinks, reportLinks } from "./links.js";
+import { sitemapXml, robotsTxt } from "./sitemap.js";
+import { localeOf, configForLocale, alternatesFor, DEFAULT_MESSAGES } from "./i18n.js";
 
 const require = createRequire(import.meta.url);
 const themeDir = dirname(fileURLToPath(import.meta.url)) + "/theme";
@@ -151,7 +153,11 @@ export function build(config, { quiet = false, strict = false } = {}) {
 
   for (const page of pages) {
     const slugger = makeSlugger();
-    let { html, toc } = markdownToHtml(page.content, { slugger });
+    const locale = localeOf(page.relPath, config.locales);
+    const localeMessages = config.locales
+      ? configForLocale(config, locale).themeConfig.messages
+      : { ...DEFAULT_MESSAGES, ...(config.themeConfig.messages || {}) };
+    let { html, toc } = markdownToHtml(page.content, { slugger, labels: localeMessages });
     // rewrite every internal .md/.html link (relative or absolute) to a final URL
     const pageDir = dirname(page.relPath) === "." ? "" : dirname(page.relPath);
     html = html.replace(/href="([^"]+)"/g, (m, href) => {
@@ -164,11 +170,24 @@ export function build(config, { quiet = false, strict = false } = {}) {
       title, description: page.data.description || "", relPath: page.relPath,
       url: page.url, layout: page.data.layout || "doc", data: page.data,
     };
-    const rawSidebar = explicit
-      ? resolveSidebar(explicit, page.url)
-      : autoSectionSidebar(page, pages, config);
+    // Per-locale config: title, description, lang, dir, nav, sidebar, messages.
+    // Pages outside a multi-locale site all resolve to "root", so a single
+    // language site pays nothing for this.
+    const localeConfig = config.locales
+      ? { ...configForLocale(renderConfig, locale), customCssFiles: renderConfig.customCssFiles }
+      : renderConfig;
+    const localeExplicit = localeConfig.themeConfig.sidebar;
+    // A locale's own pages are the only candidates for its auto sidebar.
+    const sidebarPages = config.locales
+      ? pages.filter((p) => localeOf(p.relPath, config.locales) === locale)
+      : pages;
+    const rawSidebar = localeExplicit
+      ? resolveSidebar(localeExplicit, page.url)
+      : autoSectionSidebar(page, sidebarPages, localeConfig);
     const pageSidebar = normalizeSidebar(rawSidebar, clean);
-    const out = renderPage({ contentHtml: html, toc, page: pageMeta, config: renderConfig, sidebar: pageSidebar });
+    pageMeta.locale = locale;
+    pageMeta.alternates = config.locales ? alternatesFor(page, pages, config) : [];
+    const out = renderPage({ contentHtml: html, toc, page: pageMeta, config: localeConfig, sidebar: pageSidebar });
     const dest = join(config.outPath, outFileFor(page.relPath, clean));
     mkdirSync(dirname(dest), { recursive: true });
     writeFileSync(dest, out);
@@ -190,6 +209,8 @@ export function build(config, { quiet = false, strict = false } = {}) {
         title, url: withBase(page.url, base), crumb: crumbFor(page.relPath),
         headings: toc.map((h) => h.text),
         text: plainText(page.content).slice(0, 2000),
+        // so a French reader is not shown English hits
+        ...(config.locales ? { locale } : {}),
       });
     }
   }
@@ -219,7 +240,19 @@ export function build(config, { quiet = false, strict = false } = {}) {
       redirects.map((r) => `${r.from} ${r.to} 301`).join("\n") + "\n");
   }
 
-  // 7) dead-link check, against what was actually rendered
+  // 7) sitemap.xml + robots.txt. Both need absolute URLs, so both need a
+  // hostname; say so once rather than emitting a sitemap crawlers reject.
+  if (config.hostname) {
+    const entries = pages
+      .filter((p) => p.data.sitemap !== false)
+      .map((p) => ({ url: withBase(p.url, base) }));
+    writeFileSync(join(config.outPath, "sitemap.xml"), sitemapXml(entries, config.hostname));
+  } else if (!quiet) {
+    console.warn("tina4press: no `hostname` in config, skipping sitemap.xml (it needs absolute URLs)");
+  }
+  writeFileSync(join(config.outPath, "robots.txt"), robotsTxt(config.hostname, config.robots));
+
+  // 8) dead-link check, against what was actually rendered
   const publicFiles = new Set();
   if (existsSync(config.publicPath)) {
     (function walkPublic(dir, prefix = "") {

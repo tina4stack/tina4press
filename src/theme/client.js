@@ -7,6 +7,20 @@
   var T = window.Tina4 || {};
   var html = T.html, signal = T.signal;
   var base = window.__TP_BASE__ || "/";
+  // Chrome strings for this page's locale, resolved at build time. tina4-js's
+  // i18n gives us t() with {placeholder} interpolation over that bundle; the
+  // locale itself never changes at runtime, because switching locale on a
+  // static site is navigation to a different page tree.
+  var I18N = window.__TP_I18N__ || {};
+  var i18n = (T.createI18n && I18N.messages)
+    ? T.createI18n({ locale: I18N.lang || "en", messages: (function () {
+        var b = {}; b[I18N.lang || "en"] = I18N.messages; return b;
+      })() })
+    : null;
+  var t = function (key, fallback) {
+    if (i18n) { var v = i18n.t(key); if (v && v !== key) return v; }
+    return (I18N.messages && I18N.messages[key]) || fallback;
+  };
   var MARK = ""; // sentinel wrapping search matches before we build <mark>
   MARK = String.fromCharCode(1); // force a clean, non-empty sentinel
   var asset = function (p) { return (base.replace(/\/$/, "") + "/assets/" + p).replace(/\/{2,}/g, "/"); };
@@ -127,6 +141,8 @@
       var scored = [];
       for (var p = 0; p < index.length; p++) {
         var page = index[p];
+        // a French reader should not be shown English hits
+        if (I18N.locale && page.locale && page.locale !== I18N.locale) continue;
         var hay = (page.title + " " + (page.headings || []).join(" ") + " " + page.text).toLowerCase();
         var score = 0, ok = true;
         for (var t = 0; t < terms.length; t++) {
@@ -164,8 +180,8 @@
     // reactive results list (tina4-js)
     var list = html`${function () {
       var r = results.value;
-      if (!input.value.trim()) return html`<div class="tp-search-empty">Type to search the docs…</div>`;
-      if (!r.length) return html`<div class="tp-search-empty">No results.</div>`;
+      if (!input.value.trim()) return html`<div class="tp-search-empty">${t("searchEmpty", "Type to search the docs…")}</div>`;
+      if (!r.length) return html`<div class="tp-search-empty">${t("searchNoResults", "No results.")}</div>`;
       return r.map(function (hit, i) {
         return html`<a class=${function () { return "tp-sr" + (selIdx.value === i ? " tp-sel" : ""); }} href=${hit.url}>
           <div class="tp-sr-title">${hit.title}</div>
@@ -188,13 +204,13 @@
     var wrap = document.createElement("div");
     wrap.className = "tp-chat";
     wrap.innerHTML =
-      '<button class="tp-chat-btn" aria-label="Ask">💬 ' + esc(chatCfg.label || "Ask") + '</button>' +
+      '<button class="tp-chat-btn" aria-label="' + esc(chatCfg.label || t("chatLabel", "Ask")) + '">💬 ' + esc(chatCfg.label || t("chatLabel", "Ask")) + '</button>' +
       '<div class="tp-chat-panel" hidden>' +
-      '<div class="tp-chat-head"><strong>' + esc(chatCfg.label || "Ask") + '</strong>' +
+      '<div class="tp-chat-head"><strong>' + esc(chatCfg.label || t("chatLabel", "Ask")) + '</strong>' +
       (chatCfg.model ? '<span class="tp-chat-model">' + esc(chatCfg.model) + '</span>' : '') + '</div>' +
       '<div class="tp-chat-log"></div>' +
       '<form class="tp-chat-form"><input class="tp-chat-input" placeholder="' +
-      esc(chatCfg.placeholder || "Ask a question…") + '" autocomplete="off"><button type="submit">Ask</button></form>' +
+      esc(chatCfg.placeholder || t("chatPlaceholder", "Ask a question…")) + '" autocomplete="off"><button type="submit">Ask</button></form>' +
       '</div>';
     document.body.appendChild(wrap);
     var cbtn = wrap.querySelector(".tp-chat-btn");
@@ -252,12 +268,12 @@
           if (items) {
             var sb = document.createElement("div");
             sb.className = "tp-chat-sources";
-            sb.innerHTML = '<div class="tp-chat-sources-label">Sources</div>' + items;
+            sb.innerHTML = '<div class="tp-chat-sources-label">' + esc(t("chatSources", "Sources")) + '</div>' + items;
             log.appendChild(sb);
           }
         }
         log.scrollTop = log.scrollHeight;
-      }).catch(function () { thinking.textContent = "Sorry — the assistant is unreachable right now."; });
+      }).catch(function () { thinking.textContent = t("chatError", "Sorry — the assistant is unreachable right now."); });
     });
   }
 })();
