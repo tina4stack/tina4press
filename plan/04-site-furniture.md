@@ -36,7 +36,8 @@ is told. `js/gallery/index.html` points at 16 `/gallery/*` pages that do not exi
       `twitter:card`. A docs link pasted into Slack is often the first impression.
 - [ ] `og:image`: site-wide default via config, per-page override via frontmatter.
       No build-time card generation - not worth a rasteriser dependency.
-- [ ] `sitemap.xml` and `robots.txt` from the page list already in `build()`
+- [x] `sitemap.xml` and `robots.txt` (v0.1.14). No lastmod: a CI checkout makes
+      every mtime today's date, which is worse than no hint.
 - [ ] `404.html` rendered in the theme, so a bad link keeps the reader on the site
       with nav and search
 - [ ] **Prev / next footer**, derived from the resolved sidebar order - no new config
@@ -52,7 +53,7 @@ is told. `js/gallery/index.html` points at 16 `/gallery/*` pages that do not exi
 - [x] `links: a link to a real page is not reported` (negative)
 - [x] `links: a dead #anchor is reported`
 - [x] `links: --strict exits non-zero when a link is broken`
-- [ ] `sitemap: every non-home page appears exactly once`
+- [x] `sitemap: every page appears exactly once, as an absolute URL`
 - [ ] `prevnext: first page has no prev, last has no next` (negative)
 - [ ] `og: canonical and og:url agree and respect base`
 

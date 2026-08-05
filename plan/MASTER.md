@@ -3,8 +3,8 @@
 The overview of every task and its status. One detailed plan per task in this
 folder. Nothing lands off-plan.
 
-**Repo:** tina4stack/tina4press (private) - **Branch:** `main` - **Version:** 0.1.13
-**Released:** v0.1.13 published to npm 2026-08-05. This repo has no publish
+**Repo:** tina4stack/tina4press (private) - **Branch:** `main` - **Version:** 0.1.14
+**Released:** v0.1.14 published to npm 2026-08-06. This repo has no publish
 workflow, so `npm publish` is a manual step after tagging.
 **Consumer:** tina4-documentation builds the live tina4.com with it (271 pages).
 
@@ -27,7 +27,7 @@ CSS, all static HTML underneath, and the whole site works with JavaScript off.
 | 00 | Test harness and corpus conformance | [00-test-harness.md](tina4press/plan/00-test-harness.md) | ⚠️ Partial |
 | 01 | Parser correctness | [01-parser-correctness.md](tina4press/plan/01-parser-correctness.md) | ✅ Done (v0.1.11) |
 | 02 | Theming that does not break | [02-theming.md](tina4press/plan/02-theming.md) | ✅ Done |
-| 03 | i18n on tina4-js localization | [03-i18n.md](tina4press/plan/03-i18n.md) | ❌ BUILD |
+| 03 | i18n on tina4-js localization | [03-i18n.md](tina4press/plan/03-i18n.md) | ✅ Done (v0.1.14) |
 | 04 | Site furniture (nav, SEO, social) | [04-site-furniture.md](tina4press/plan/04-site-furniture.md) | ⚠️ Partial |
 | 05 | Delivery and performance | [05-delivery-performance.md](tina4press/plan/05-delivery-performance.md) | ❌ BUILD |
 | 06 | Accessibility and reading polish | [06-accessibility.md](tina4press/plan/06-accessibility.md) | ❌ BUILD |
@@ -51,12 +51,12 @@ Parity here is measured against VitePress, not against four languages.
 | Clean URLs | ✅ | ✅ | plus loop-free .htaccess |
 | Markdown correctness | ✅ | ✅ | task 01, 42 regression tests, v0.1.11 |
 | Prev / next page nav | ✅ | ❌ | task 04 |
-| sitemap.xml | ✅ | ❌ | task 04 |
+| sitemap.xml + robots.txt | ✅ | ✅ | needs `hostname`; 271 URLs on tina4.com |
 | Canonical + Open Graph | ✅ | ❌ | task 04 |
 | Per-page meta description | ✅ | ⚠️ | 268 of 288 pages share one, task 04 |
 | Dead-link checking | ✅ | ✅ | `--strict` gates CI; corpus at 0 broken, 0 dead |
 | Content-hashed assets | ✅ | ❌ | stale CSS after deploy, task 05 |
-| i18n | ✅ | ❌ | task 03 |
+| i18n | ✅ | ✅ | locale trees, hreflang, switcher, RTL, translated chrome |
 | Custom CSS hook | ✅ | ✅ | `customCss` |
 | Layout slots | ✅ (Vue) | ✅ | 7 named slots, plain HTML strings not components |
 | Ships a framework runtime to the reader | ❌ Vue | ✅ none | 27 KB tina4-js, no Vue |
