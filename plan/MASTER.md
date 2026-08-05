@@ -3,9 +3,9 @@
 The overview of every task and its status. One detailed plan per task in this
 folder. Nothing lands off-plan.
 
-**Repo:** tina4stack/tina4press (private) - **Branch:** `main` - **Version:** 0.1.11
-**Released:** v0.1.11 tagged and pushed 2026-08-05. **npm still shows 0.1.10** - this
-repo has no publish workflow, so `npm publish` is a manual step.
+**Repo:** tina4stack/tina4press (private) - **Branch:** `main` - **Version:** 0.1.13
+**Released:** v0.1.13 published to npm 2026-08-05. This repo has no publish
+workflow, so `npm publish` is a manual step after tagging.
 **Consumer:** tina4-documentation builds the live tina4.com with it (271 pages).
 
 ## Why this exists
@@ -28,7 +28,7 @@ CSS, all static HTML underneath, and the whole site works with JavaScript off.
 | 01 | Parser correctness | [01-parser-correctness.md](tina4press/plan/01-parser-correctness.md) | ✅ Done (v0.1.11) |
 | 02 | Theming that does not break | [02-theming.md](tina4press/plan/02-theming.md) | ✅ Done |
 | 03 | i18n on tina4-js localization | [03-i18n.md](tina4press/plan/03-i18n.md) | ❌ BUILD |
-| 04 | Site furniture (nav, SEO, social) | [04-site-furniture.md](tina4press/plan/04-site-furniture.md) | ❌ BUILD |
+| 04 | Site furniture (nav, SEO, social) | [04-site-furniture.md](tina4press/plan/04-site-furniture.md) | ⚠️ Partial |
 | 05 | Delivery and performance | [05-delivery-performance.md](tina4press/plan/05-delivery-performance.md) | ❌ BUILD |
 | 06 | Accessibility and reading polish | [06-accessibility.md](tina4press/plan/06-accessibility.md) | ❌ BUILD |
 | 07 | Repo hygiene and release | [07-repo-hygiene.md](tina4press/plan/07-repo-hygiene.md) | ⚠️ Partial |
@@ -54,7 +54,7 @@ Parity here is measured against VitePress, not against four languages.
 | sitemap.xml | ✅ | ❌ | task 04 |
 | Canonical + Open Graph | ✅ | ❌ | task 04 |
 | Per-page meta description | ✅ | ⚠️ | 268 of 288 pages share one, task 04 |
-| Dead-link checking | ✅ | ❌ | 16 broken + 126 dead anchors ship silently, task 04 |
+| Dead-link checking | ✅ | ✅ | `--strict` gates CI; corpus at 0 broken, 0 dead |
 | Content-hashed assets | ✅ | ❌ | stale CSS after deploy, task 05 |
 | i18n | ✅ | ❌ | task 03 |
 | Custom CSS hook | ✅ | ✅ | `customCss` |
@@ -66,7 +66,7 @@ Parity here is measured against VitePress, not against four languages.
 Open bugs live in their task plan's Bugs section. Nothing is closed without a
 named regression test that failed before the fix.
 
-- [ ] 16 broken internal links and 126 dead anchors ship silently (task 04)
+- [x] 15 broken internal links and 119 dead anchors ship silently (fixed, v0.1.13)
 - [ ] A theme change serves stale CSS to returning readers (task 05)
 - [ ] `rmSync(outPath)` has no guard; a typo in `outDir` deletes the source (task 05)
 - [ ] Dev server binds 0.0.0.0 and allows `..` traversal (task 05)
