@@ -3,7 +3,9 @@
 The overview of every task and its status. One detailed plan per task in this
 folder. Nothing lands off-plan.
 
-**Repo:** tina4stack/tina4press (private) - **Branch:** `main` - **Version:** 0.1.10
+**Repo:** tina4stack/tina4press (private) - **Branch:** `main` - **Version:** 0.1.11
+**Released:** v0.1.11 tagged and pushed 2026-08-05. **npm still shows 0.1.10** - this
+repo has no publish workflow, so `npm publish` is a manual step.
 **Consumer:** tina4-documentation builds the live tina4.com with it (271 pages).
 
 ## Why this exists
@@ -22,8 +24,8 @@ CSS, all static HTML underneath, and the whole site works with JavaScript off.
 
 | # | Task | Plan | Status |
 |---|------|------|--------|
-| 00 | Test harness and corpus conformance | [00-test-harness.md](tina4press/plan/00-test-harness.md) | ✅ Done |
-| 01 | Parser correctness | [01-parser-correctness.md](tina4press/plan/01-parser-correctness.md) | ✅ Done |
+| 00 | Test harness and corpus conformance | [00-test-harness.md](tina4press/plan/00-test-harness.md) | ⚠️ Partial |
+| 01 | Parser correctness | [01-parser-correctness.md](tina4press/plan/01-parser-correctness.md) | ✅ Done (v0.1.11) |
 | 02 | Theming that does not break | [02-theming.md](tina4press/plan/02-theming.md) | ❌ BUILD |
 | 03 | i18n on tina4-js localization | [03-i18n.md](tina4press/plan/03-i18n.md) | ❌ BUILD |
 | 04 | Site furniture (nav, SEO, social) | [04-site-furniture.md](tina4press/plan/04-site-furniture.md) | ❌ BUILD |
@@ -47,7 +49,7 @@ Parity here is measured against VitePress, not against four languages.
 | Dark / light, no flash | ✅ | ✅ | |
 | Home hero layout | ✅ | ✅ | |
 | Clean URLs | ✅ | ✅ | plus loop-free .htaccess |
-| Markdown correctness | ✅ | ✅ | task 01, 42 regression tests |
+| Markdown correctness | ✅ | ✅ | task 01, 42 regression tests, v0.1.11 |
 | Prev / next page nav | ✅ | ❌ | task 04 |
 | sitemap.xml | ✅ | ❌ | task 04 |
 | Canonical + Open Graph | ✅ | ❌ | task 04 |

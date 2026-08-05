@@ -56,6 +56,8 @@ files on disk.
 
 ## Commits
 
-- (pending) test: 42 named regression tests for the markdown renderer
+- 51f2749  test: 42 named regression tests (shipped with the fixes they prove)
+- fec70ca  chore: npm test + prepublishOnly gate
 
-## Status: Done for task 01; CI, prepublish gate and corpus test still open
+## Status: Partial. Suite + prepublish gate shipped in v0.1.11; CI, the corpus
+conformance test and the CommonMark score are still open.

@@ -15,8 +15,8 @@ Make the repo honest about what it is, and make a release repeatable.
 - [x] Add a LICENSE file. MIT was claimed in package.json and the README with no
       LICENSE file present.
 - [x] Proper `plan/` folder on the Tina4 pattern: MASTER plus one plan per task
-- [ ] `npm test` wired in package.json, and `prepublishOnly` gating publish on green
-- [ ] Delete the committed `tina4press-0.1.0.tgz` build artefact
+- [x] `npm test` wired in package.json, and `prepublishOnly` gating publish on green
+- [x] Delete the committed `tina4press-0.1.0.tgz` build artefact
 - [ ] CHANGELOG.md
 - [ ] CONTRIBUTING.md documenting the publish path, including the
       `gh auth switch --user tina4stack` step, so it is not rediscovered each release
@@ -48,11 +48,14 @@ Jenkins deploy runs `npm install`, so a stale pnpm lock breaks a pnpm build.
 
 ## Bugs
 
-- [ ] `tina4press-0.1.0.tgz` is committed to the repo
+- [x] `tina4press-0.1.0.tgz` is committed to the repo
 
 ## Commits
 
-- (pending) docs: rewrite README against the code, add limitations, sponsor, LICENSE
-- (pending) plan: proper plan folder on the Tina4 pattern
+- 6a296fc  docs: rewrite the README against the code; add LICENSE and sponsor
+- 7f02377  plan: add the plan folder on the Tina4 pattern
+- fec70ca  chore: npm test, prepublishOnly gate, drop the committed tgz
+- 9d246c5  0.1.11
+- afcde30  Merge feature/release0.1.11 -> main, tagged v0.1.11
 
 ## Status: In Progress

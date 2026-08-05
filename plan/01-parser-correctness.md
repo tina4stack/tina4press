@@ -104,8 +104,7 @@ tina4-documentation corpus at its current HEAD. Not run on Linux or Windows.
 
 ## Commits
 
-- (pending) markdown: hold protected spans behind a NUL sentinel; fix HTML blocks,
-  comments, autolinks, list block content, task lists, table pipes, backslash
-  escapes and attribute escaping; 42 regression tests
+- 51f2749  fix(markdown): stop the renderer eating content; 42 regression tests
+- afcde30  Merge feature/release0.1.11 -> main, tagged v0.1.11
 
-## Status: Done, pending commit
+## Status: Done, shipped in v0.1.11
