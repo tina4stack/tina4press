@@ -17,16 +17,22 @@ const escapeHtml = (s) =>
 // break out of the attribute.
 const escAttr = (s) => String(s).replace(/"/g, "&quot;");
 
-// slug generator with de-duplication for heading anchors
+// slug generator with de-duplication for heading anchors.
+//
+// A slug that would start with a digit gets an underscore, matching VitePress.
+// Numbered headings ("## 6. Relationships") are everywhere in these docs, and
+// without this every cross-reference written against VitePress ("#_6-relationships")
+// lands on nothing.
 function makeSlugger() {
   const seen = new Map();
   return (text) => {
-    const base = text
+    let base = text
       .toLowerCase()
       .replace(/<[^>]+>/g, "")
       .replace(/[^\w\s-]/g, "")
       .trim()
       .replace(/\s+/g, "-") || "section";
+    if (/^\d/.test(base)) base = "_" + base;
     const n = seen.get(base) || 0;
     seen.set(base, n + 1);
     return n ? `${base}-${n}` : base;
@@ -174,13 +180,16 @@ export function markdownToHtml(src, { slugger = makeSlugger() } = {}) {
       } else if (kind === "steps") {
         out.push(`<div class="tp-steps">${markdownToHtml(inner.join("\n"), { slugger }).html}</div>`);
       } else if (kind === "details") {
+        // Labels go through renderInline, like tab and card titles do. Escaping
+        // them left `code` and **bold** as literal characters in a summary, and
+        // an escaped `<a href="...">` sample inside a title read as a real link.
         const label = cont[2].trim() || CONTAINERS.details;
         const rendered = markdownToHtml(inner.join("\n"), { slugger }).html;
-        out.push(`<details class="tp-details"><summary>${escapeHtml(label)}</summary>${rendered}</details>`);
+        out.push(`<details class="tp-details"><summary>${renderInline(label)}</summary>${rendered}</details>`);
       } else if (CONTAINERS[kind]) {
         const label = cont[2].trim() || CONTAINERS[kind];
         const rendered = markdownToHtml(inner.join("\n"), { slugger }).html;
-        out.push(`<div class="tp-callout tp-${kind}"><p class="tp-callout-title">${escapeHtml(label)}</p>${rendered}</div>`);
+        out.push(`<div class="tp-callout tp-${kind}"><p class="tp-callout-title">${renderInline(label)}</p>${rendered}</div>`);
       } else {
         const rendered = markdownToHtml(inner.join("\n"), { slugger }).html;
         out.push(`<div class="tp-group tp-${escapeHtml(kind)}">${rendered}</div>`);
@@ -202,10 +211,19 @@ export function markdownToHtml(src, { slugger = makeSlugger() } = {}) {
     const h = line.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/);
     if (h) {
       const level = h[1].length;
-      // Strip a redundant author-written empty anchor (### Title <a href="#x" id="x"></a>):
-      // tina4press adds its own id + permalink, so keep only the visible text.
-      const text = h[2].replace(/<a\s+[^>]*>\s*<\/a>/gi, "").trim();
-      const slug = slugger(text);
+      // An author can pin the anchor, either VitePress-style `{#custom-id}` or
+      // with an empty anchor element (### Title <a href="#x" id="x"></a>).
+      // That id is HONOURED — generating a slug from the heading text instead
+      // silently broke every cross-reference written against it, because the
+      // pinned id rarely matches the prose ("Template Rendering" -> #templates).
+      let raw = h[2];
+      const curly = raw.match(/\{#([\w-]+)\}\s*$/);
+      if (curly) raw = raw.slice(0, curly.index);
+      const anchored = raw.match(/<a\s+[^>]*\bid="([^"]+)"[^>]*>\s*<\/a>/i);
+      // The empty anchor itself is redundant once we carry its id, so drop it.
+      const text = raw.replace(/<a\s+[^>]*>\s*<\/a>/gi, "").trim();
+      const pinned = (curly && curly[1]) || (anchored && anchored[1]);
+      const slug = pinned || slugger(text);
       if (level >= 2 && level <= 3) toc.push({ level, text: text.replace(/[*_`]/g, ""), slug });
       out.push(
         `<h${level} id="${slug}">${renderInline(text)}` +

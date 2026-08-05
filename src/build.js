@@ -10,6 +10,7 @@ import { markdownToHtml, makeSlugger } from "./markdown.js";
 import { parseFrontmatter } from "./frontmatter.js";
 import { autoSectionSidebar, resolveSidebar, titleFromPage } from "./sidebar.js";
 import { renderPage } from "./theme/layout.js";
+import { collectPageLinks, checkLinks, reportLinks } from "./links.js";
 
 const require = createRequire(import.meta.url);
 const themeDir = dirname(fileURLToPath(import.meta.url)) + "/theme";
@@ -60,12 +61,20 @@ function posixNormalize(p) {
 }
 // Rewrite one internal doc link (relative or absolute .md/.html) to a final URL.
 // Returns null for external links / anchors / non-doc hrefs (leave untouched).
-function fixContentLink(href, pageDir, clean, base) {
+//
+// A .html link is only rewritten when it actually names a markdown page. Static
+// files copied out of public/ are .html too, and rewriting those to a clean URL
+// pointed 15 live gallery demos at directories that do not exist: the file is
+// gallery/01-dashboard.html, but the link became /gallery/01-dashboard/ -> 404.
+// A .md link is always rewritten; if it resolves to nothing the link checker
+// reports it rather than the rewrite silently inventing a URL.
+function fixContentLink(href, pageDir, clean, base, isPage) {
   const m = href.match(/^([^#]*?)\.(md|html)(#.*)?$/i);
   if (!m) return null;
-  let p = m[1]; const hash = m[3] || "";
+  let p = m[1]; const ext = m[2].toLowerCase(); const hash = m[3] || "";
   if (/^https?:/i.test(p) || p === "") return null;
   const n = p.startsWith("/") ? posixNormalize(p) : posixNormalize((pageDir ? pageDir + "/" : "") + p);
+  if (ext === "html" && isPage && !isPage(n)) return null;
   return withBase(clean ? cleanFromNoExt(n) : n + ".html", base) + hash;
 }
 function crumbFor(relPath) {
@@ -93,7 +102,7 @@ function copyDir(src, dst) {
   }
 }
 
-export function build(config, { quiet = false } = {}) {
+export function build(config, { quiet = false, strict = false } = {}) {
   const t0 = Date.now();
   const clean = !!config.cleanUrls;
   const base = config.base || "/";
@@ -134,6 +143,11 @@ export function build(config, { quiet = false } = {}) {
   mkdirSync(config.outPath, { recursive: true });
   const searchIndex = [];
   const redirects = []; // { from: "/foo.html", to: "/foo/" } for old-link 301s
+  const linkPages = []; // { relPath, url, ids, hrefs } for the dead-link check
+  // every markdown page by its extensionless path, so a .html link can be told
+  // apart from a static file copied out of public/
+  const pageKeys = new Set(pages.map((p) => noExtOf(p.relPath)));
+  const isPage = (n) => pageKeys.has(n) || pageKeys.has(n + "/index");
 
   for (const page of pages) {
     const slugger = makeSlugger();
@@ -141,7 +155,7 @@ export function build(config, { quiet = false } = {}) {
     // rewrite every internal .md/.html link (relative or absolute) to a final URL
     const pageDir = dirname(page.relPath) === "." ? "" : dirname(page.relPath);
     html = html.replace(/href="([^"]+)"/g, (m, href) => {
-      const fixed = fixContentLink(href, pageDir, clean, base);
+      const fixed = fixContentLink(href, pageDir, clean, base, isPage);
       return fixed ? `href="${fixed}"` : m;
     });
 
@@ -158,6 +172,7 @@ export function build(config, { quiet = false } = {}) {
     const dest = join(config.outPath, outFileFor(page.relPath, clean));
     mkdirSync(dirname(dest), { recursive: true });
     writeFileSync(dest, out);
+    linkPages.push({ relPath: page.relPath, url: page.url, ...collectPageLinks(out) });
 
     // clean mode: redirect the old .html ONLY for pages whose file actually
     // moved (foo.html -> foo/index.html). Index pages keep their location
@@ -204,9 +219,30 @@ export function build(config, { quiet = false } = {}) {
       redirects.map((r) => `${r.from} ${r.to} 301`).join("\n") + "\n");
   }
 
+  // 7) dead-link check, against what was actually rendered
+  const publicFiles = new Set();
+  if (existsSync(config.publicPath)) {
+    (function walkPublic(dir, prefix = "") {
+      for (const name of readdirSync(dir)) {
+        const p = join(dir, name);
+        if (statSync(p).isDirectory()) walkPublic(p, prefix + name + "/");
+        else publicFiles.add(prefix + name);
+      }
+    })(config.publicPath);
+  }
+  const linkReport = checkLinks(linkPages, { base, assets: publicFiles });
+  // `quiet` suppresses OUTPUT, it must never change the verdict — a caller that
+  // builds quietly still needs to know the site has broken links.
+  const linksClean = !linkReport.brokenLinks.length && !linkReport.deadAnchors.length;
+  if (!quiet) reportLinks(linkReport, { strict });
+
   const ms = Date.now() - t0;
   if (!quiet) console.log(`tina4press: built ${pages.length} page(s) in ${ms}ms -> ${relative(process.cwd(), config.outPath)}`);
-  return { pages: pages.length, ms };
+  return {
+    pages: pages.length, ms,
+    brokenLinks: linkReport.brokenLinks, deadAnchors: linkReport.deadAnchors,
+    ok: linksClean,
+  };
 }
 
 function withBase(link, base) {
@@ -254,7 +290,9 @@ function htaccessBody(base, withRedirects) {
     "# /path/index.html -> /path/",
     "RewriteCond %{THE_REQUEST} \\s/+(.*?)index\\.html[\\s?] [NC]",
     `RewriteRule ^ ${b}%1 [R=301,L]`,
-    "# /foo.html -> /foo/",
+    "# /foo.html -> /foo/  (but never redirect away from a file that exists:",
+    "# a static .html copied out of public/ must serve, not 301 into a 404)",
+    "RewriteCond %{REQUEST_FILENAME} !-f",
     "RewriteCond %{THE_REQUEST} \\s/+([^?\\s]+?)\\.html[\\s?] [NC]",
     `RewriteRule ^ ${b}%1/ [R=301,L]`,
     "",
