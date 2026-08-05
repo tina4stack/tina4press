@@ -130,7 +130,8 @@ const indentOf = (line) => line.match(/^(\s*)/)[1].length;
 // ---------------------------------------------------------------------------
 // Block rendering. Returns { html, toc } where toc is [{level, text, slug}].
 // ---------------------------------------------------------------------------
-export function markdownToHtml(src, { slugger = makeSlugger() } = {}) {
+// `labels` lets a locale rename the built-in container titles (Tip, Warning...).
+export function markdownToHtml(src, { slugger = makeSlugger(), labels = CONTAINERS } = {}) {
   // Strip NUL so the inline placeholders above cannot be forged from source.
   const lines = src.replace(/\u0000/g, "").replace(/\r\n?/g, "\n").split("\n");
   const out = [];
@@ -174,24 +175,24 @@ export function markdownToHtml(src, { slugger = makeSlugger() } = {}) {
       if (kind === "code-group") {
         out.push(renderCodeGroup(inner));
       } else if (kind === "tabs") {
-        out.push(renderTabs(inner, slugger));
+        out.push(renderTabs(inner, slugger, labels));
       } else if (kind === "cards" || kind === "card-grid") {
-        out.push(renderCards(inner, slugger));
+        out.push(renderCards(inner, slugger, labels));
       } else if (kind === "steps") {
-        out.push(`<div class="tp-steps">${markdownToHtml(inner.join("\n"), { slugger }).html}</div>`);
+        out.push(`<div class="tp-steps">${markdownToHtml(inner.join("\n"), { slugger, labels }).html}</div>`);
       } else if (kind === "details") {
         // Labels go through renderInline, like tab and card titles do. Escaping
         // them left `code` and **bold** as literal characters in a summary, and
         // an escaped `<a href="...">` sample inside a title read as a real link.
-        const label = cont[2].trim() || CONTAINERS.details;
-        const rendered = markdownToHtml(inner.join("\n"), { slugger }).html;
+        const label = cont[2].trim() || labels.details || CONTAINERS.details;
+        const rendered = markdownToHtml(inner.join("\n"), { slugger, labels }).html;
         out.push(`<details class="tp-details"><summary>${renderInline(label)}</summary>${rendered}</details>`);
       } else if (CONTAINERS[kind]) {
-        const label = cont[2].trim() || CONTAINERS[kind];
-        const rendered = markdownToHtml(inner.join("\n"), { slugger }).html;
+        const label = cont[2].trim() || labels[kind] || CONTAINERS[kind];
+        const rendered = markdownToHtml(inner.join("\n"), { slugger, labels }).html;
         out.push(`<div class="tp-callout tp-${kind}"><p class="tp-callout-title">${renderInline(label)}</p>${rendered}</div>`);
       } else {
-        const rendered = markdownToHtml(inner.join("\n"), { slugger }).html;
+        const rendered = markdownToHtml(inner.join("\n"), { slugger, labels }).html;
         out.push(`<div class="tp-group tp-${escapeHtml(kind)}">${rendered}</div>`);
       }
       continue;
@@ -243,7 +244,7 @@ export function markdownToHtml(src, { slugger = makeSlugger() } = {}) {
         buf.push(lines[i].replace(/^\s*>\s?/, ""));
         i++;
       }
-      out.push(`<blockquote>${markdownToHtml(buf.join("\n"), { slugger }).html}</blockquote>`);
+      out.push(`<blockquote>${markdownToHtml(buf.join("\n"), { slugger, labels }).html}</blockquote>`);
       continue;
     }
 
@@ -265,7 +266,7 @@ export function markdownToHtml(src, { slugger = makeSlugger() } = {}) {
 
     // lists (unordered / ordered)
     if (/^\s*([-*+]|\d+\.)\s+/.test(line)) {
-      const { html, next } = renderList(lines, i, slugger);
+      const { html, next } = renderList(lines, i, slugger, labels);
       out.push(html);
       i = next;
       continue;
@@ -317,18 +318,18 @@ function splitSections(innerLines) {
 }
 
 // Built-in content tabs: ::: tabs with `== Label` sections (any content).
-function renderTabs(innerLines, slugger) {
+function renderTabs(innerLines, slugger, labels) {
   const sections = splitSections(innerLines);
-  if (!sections.length) return `<div class="tp-group">${markdownToHtml(innerLines.join("\n"), { slugger }).html}</div>`;
+  if (!sections.length) return `<div class="tp-group">${markdownToHtml(innerLines.join("\n"), { slugger, labels }).html}</div>`;
   const nav = sections.map((s, k) =>
     `<button class="tp-tab${k === 0 ? " tp-on" : ""}">${renderInline(s.label)}</button>`).join("");
   const panes = sections.map((s, k) =>
-    `<div class="tp-tab-pane${k === 0 ? " tp-on" : ""}">${markdownToHtml(s.lines.join("\n"), { slugger }).html}</div>`).join("");
+    `<div class="tp-tab-pane${k === 0 ? " tp-on" : ""}">${markdownToHtml(s.lines.join("\n"), { slugger, labels }).html}</div>`).join("");
   return `<div class="tp-tabs"><div class="tp-tabs-nav">${nav}</div>${panes}</div>`;
 }
 
 // Built-in card grid: ::: cards with `== Title` sections (title may lead with an emoji).
-function renderCards(innerLines, slugger) {
+function renderCards(innerLines, slugger, labels) {
   const sections = splitSections(innerLines);
   if (!sections.length) return "";
   const cards = sections.map((s) => {
@@ -336,7 +337,7 @@ function renderCards(innerLines, slugger) {
     const icon = em && /\p{Emoji}/u.test(em[1]) ? `<div class="tp-card-ic">${em[1]}</div>` : "";
     const title = icon ? em[2] : s.label;
     return `<div class="tp-card">${icon}<h3>${renderInline(title)}</h3>` +
-      `<div class="tp-card-body">${markdownToHtml(s.lines.join("\n"), { slugger }).html}</div></div>`;
+      `<div class="tp-card-body">${markdownToHtml(s.lines.join("\n"), { slugger, labels }).html}</div></div>`;
   }).join("");
   return `<div class="tp-cards">${cards}</div>`;
 }
@@ -421,7 +422,7 @@ function renderTable(headers, aligns, rows) {
 // it can hold paragraphs, fenced code and nested lists — all rendered by
 // recursion. Previously an item was a single line, so a fence indented under
 // "1." ended the list and the numbering restarted at 1 afterwards.
-function renderList(lines, start, slugger) {
+function renderList(lines, start, slugger, labels) {
   const baseIndent = indentOf(lines[start]);
   const ordered = /^\s*\d+\./.test(lines[start]);
   const items = [];
@@ -469,7 +470,7 @@ function renderList(lines, start, slugger) {
     // task list:  - [ ] todo   /   - [x] done
     const task = body[0].match(/^\[([ xX])\]\s+(.*)$/);
     if (task) body = [task[2], ...body.slice(1)];
-    const inner = renderItem(body, slugger, loose);
+    const inner = renderItem(body, slugger, loose, labels);
     return task
       ? `<li class="tp-task"><input type="checkbox" disabled${task[1] === " " ? "" : " checked"}>${inner}</li>`
       : `<li>${inner}</li>`;
@@ -479,12 +480,12 @@ function renderList(lines, start, slugger) {
 
 // One list item. A lone line stays inline (a tight list keeps no <p>); anything
 // richer goes back through the block renderer.
-function renderItem(body, slugger, loose) {
+function renderItem(body, slugger, loose, labels) {
   if (body.length === 1) return renderInline(body[0]);
   const cont = body.slice(1).filter((l) => l.trim());
   const dedent = cont.length ? Math.min(...cont.map(indentOf)) : 0;
   const text = [body[0], ...body.slice(1).map((l) => l.slice(dedent))].join("\n");
-  const html = markdownToHtml(text, { slugger }).html;
+  const html = markdownToHtml(text, { slugger, labels }).html;
   return loose ? html : html.replace(/^<p>([\s\S]*?)<\/p>/, "$1");
 }
 

@@ -9,6 +9,8 @@ const DEFAULTS = {
   title: "Tina4press",
   description: "Docs built with tina4press",
   base: "/",
+  hostname: "",       // "https://example.com" — required for sitemap.xml
+  robots: "",         // replaces the default robots.txt rules wholesale
   cleanUrls: false,   // true => /foo/ (dir index) + redirect stubs from /foo.html
   srcDir: "docs",
   outDir: "dist",

@@ -33,11 +33,11 @@ function sidebarHtml(sidebar, currentUrl, base) {
   }).join("");
 }
 
-function tocHtml(toc) {
+function tocHtml(toc, title = "On this page") {
   if (!toc || toc.length < 2) return "";
   const items = toc.map((h) =>
     `<li class="tp-toc-l${h.level}"><a href="#${esc(h.slug)}">${esc(h.text)}</a></li>`).join("");
-  return `<nav class="tp-toc" aria-label="On this page"><p class="tp-toc-title">On this page</p><ul>${items}</ul></nav>`;
+  return `<nav class="tp-toc" aria-label="On this page"><p class="tp-toc-title">${esc(title)}</p><ul>${items}</ul></nav>`;
 }
 
 function withBase(link, base) {
@@ -197,21 +197,40 @@ export function renderPage({ contentHtml, toc, page, config, sidebar }) {
   const base = config.base || "/";
   const title = page.title ? `${page.title} · ${config.title}` : config.title;
   const asset = (p) => withBase(`assets/${p}`, base);
+  // Chrome strings for this page's locale, already merged by configForLocale.
+  const m = tc.messages || {};
+  const t = (k, fallback) => esc(m[k] || fallback);
+  const lang = (config.i18n && config.i18n.lang) || "en";
+  const dir = (config.i18n && config.i18n.dir) || "ltr";
 
   const editLink = tc.editLinkBase
-    ? `<a class="tp-edit" href="${esc(tc.editLinkBase.replace(/\/$/, "") + "/" + page.relPath)}" target="_blank" rel="noreferrer">Edit this page</a>`
+    ? `<a class="tp-edit" href="${esc(tc.editLinkBase.replace(/\/$/, "") + "/" + page.relPath)}" target="_blank" rel="noreferrer">${t("editLink", "Edit this page")}</a>`
+    : "";
+
+  // hreflang tells a crawler these pages are translations of each other.
+  const alternates = page.alternates || [];
+  const hreflang = alternates.filter((a) => a.translated).map((a) =>
+    `<link rel="alternate" hreflang="${esc(a.lang)}" href="${esc(withBase(a.url, base))}">`).join("");
+  // The switcher never links into a 404: an untranslated locale goes to its home.
+  const localeSwitcher = alternates.length > 1
+    ? `<div class="tp-locales"><button class="tp-locale-btn" aria-haspopup="true" aria-expanded="false">${
+        esc((alternates.find((a) => a.current) || alternates[0]).label)}</button><ul class="tp-locale-menu">${
+        alternates.map((a) =>
+          `<li><a class="tp-locale-link${a.current ? " tp-on" : ""}" hreflang="${esc(a.lang)}" href="${
+            esc(withBase(a.url, base))}">${esc(a.label)}</a></li>`).join("")}</ul></div>`
     : "";
 
   const isHome = page.layout === "home";
   const homeHero = isHome ? heroHtml(page.data || {}, base, !!config.cleanUrls) : "";
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${esc(lang)}" dir="${esc(dir)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(page.description || config.description)}">
+${hreflang}
 <link rel="stylesheet" href="${esc(asset("theme.css"))}">
 ${(config.customCssFiles || []).map((f) => `<link rel="stylesheet" href="${esc(asset(f))}">`).join("")}
 ${colorStyle(tc)}
@@ -230,10 +249,11 @@ ${tc.logo ? `<link rel="icon" href="${esc(withBase(tc.logo, base))}">` : ""}
     ${slot(tc, "headerStart", page)}
     <nav class="tp-nav">${navHtml(tc.nav, base)}</nav>
     <div class="tp-header-actions">
+      ${localeSwitcher}
       ${slot(tc, "headerEnd", page)}
-      ${tc.search ? `<button class="tp-search-btn" id="tp-search-open" aria-label="Search">🔍 <span class="tp-search-hint">Search</span><kbd>⌘K</kbd></button>` : ""}
-      <button class="tp-theme-toggle" id="tp-theme-toggle" aria-label="Toggle theme"></button>
-      <button class="tp-menu-toggle" id="tp-menu-toggle" aria-label="Menu">☰</button>
+      ${tc.search ? `<button class="tp-search-btn" id="tp-search-open" aria-label="${t("search","Search")}">🔍 <span class="tp-search-hint">${t("search","Search")}</span><kbd>⌘K</kbd></button>` : ""}
+      <button class="tp-theme-toggle" id="tp-theme-toggle" aria-label="${t("toggleTheme","Toggle theme")}"></button>
+      <button class="tp-menu-toggle" id="tp-menu-toggle" aria-label="${t("menu","Menu")}">☰</button>
     </div>
   </div>
 </header>
@@ -250,16 +270,16 @@ ${tc.logo ? `<link rel="icon" href="${esc(withBase(tc.logo, base))}">` : ""}
     ${slot(tc, "contentBottom", page)}
     ${isHome ? "" : `<div class="tp-page-foot">${editLink}${tc.footer ? `<p class="tp-footer">${tc.footer}</p>` : ""}${slot(tc, "footer", page)}</div>`}
   </main>
-  ${isHome ? "" : tocHtml(toc)}
+  ${isHome ? "" : tocHtml(toc, m.tocTitle)}
 </div>
 ${tc.search ? `<div class="tp-search-modal" id="tp-search-modal" hidden>
   <div class="tp-search-box" role="dialog" aria-label="Search">
-    <input id="tp-search-input" type="search" placeholder="Search the docs…" autocomplete="off" spellcheck="false">
+    <input id="tp-search-input" type="search" placeholder="${t("searchPlaceholder","Search the docs…")}" autocomplete="off" spellcheck="false">
     <div class="tp-search-results" id="tp-search-results"></div>
-    <div class="tp-search-foot"><kbd>↑</kbd><kbd>↓</kbd> navigate <kbd>↵</kbd> open <kbd>esc</kbd> close</div>
+    <div class="tp-search-foot"><kbd>↑</kbd><kbd>↓</kbd> ${t("searchNavigate","navigate")} <kbd>↵</kbd> ${t("searchOpen","open")} <kbd>esc</kbd> ${t("searchClose","close")}</div>
   </div>
 </div>` : ""}
-<script>window.__TP_BASE__=${JSON.stringify(base)};${tc.chat ? `window.__TP_CHAT__=${JSON.stringify(tc.chat)};` : ""}</script>
+<script>window.__TP_BASE__=${JSON.stringify(base)};window.__TP_I18N__=${JSON.stringify({messages:m,lang,locale:page.locale||"root"})};${tc.chat ? `window.__TP_CHAT__=${JSON.stringify(tc.chat)};` : ""}</script>
 <script src="${esc(asset("tina4js.min.js"))}"></script>
 <script src="${esc(asset("client.js"))}"></script>
 </body>
