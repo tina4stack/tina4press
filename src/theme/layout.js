@@ -192,6 +192,58 @@ function heroHtml(data, base, clean) {
   </section>${featGrid}`;
 }
 
+// Open Graph and Twitter Card tags, so a shared link unfurls with a title, a
+// description and an image instead of a bare URL. Everything is derived from
+// what the page already carries - its title, its description, its own URL - so
+// every page gets its OWN card, never one site-wide card stamped on all of them.
+// A page overrides any field through frontmatter (ogTitle, ogDescription,
+// ogImage, ogImageAlt, ogType); the site sets the default image once through
+// config.ogImage.
+//
+// An absolute URL needs an origin, so og:url, the canonical link and a
+// site-relative og:image are emitted only when config.hostname is set; an image
+// given as a full https:// URL always works. og:title falls back to the bare
+// page title - og:site_name already carries the brand, so the "page · site"
+// suffix the <title> uses is not repeated here.
+function socialTags(page, config, base) {
+  const data = page.data || {};
+  const host = String(config.hostname || "").replace(/\/+$/, "");
+  const absolute = (value) => {
+    if (!value) return "";
+    if (/^https?:\/\//i.test(value)) return value;
+    if (!host) return "";
+    return (host + "/" + withBase(value, base).replace(/^\/+/, "")).replace(/([^:])\/{2,}/g, "$1/");
+  };
+  const meta = (attr, key, value) =>
+    value ? `<meta ${attr}="${key}" content="${esc(value)}">` : "";
+
+  const ogTitle = data.ogTitle || page.title || config.title;
+  const ogDescription = data.ogDescription || page.description || config.description || "";
+  const ogImage = absolute(data.ogImage || config.ogImage || "");
+  // page.url is "" for the home page, which must still resolve to the site root,
+  // so this cannot go through absolute() (which treats "" as "no value").
+  const ogUrl = host
+    ? (host + "/" + withBase(page.url, base).replace(/^\/+/, "")).replace(/([^:])\/{2,}/g, "$1/")
+    : "";
+  const ogType = data.ogType || (page.layout === "home" ? "website" : "article");
+  const imageAlt = data.ogImageAlt || config.ogImageAlt || "";
+
+  return [
+    meta("property", "og:type", ogType),
+    meta("property", "og:site_name", config.title),
+    meta("property", "og:title", ogTitle),
+    meta("property", "og:description", ogDescription),
+    meta("property", "og:url", ogUrl),
+    meta("property", "og:image", ogImage),
+    ogImage ? meta("property", "og:image:width", config.ogImageWidth) : "",
+    ogImage ? meta("property", "og:image:height", config.ogImageHeight) : "",
+    ogImage ? meta("property", "og:image:alt", imageAlt) : "",
+    meta("name", "twitter:card", ogImage ? "summary_large_image" : "summary"),
+    ogImage ? meta("name", "twitter:image", ogImage) : "",
+    ogUrl ? `<link rel="canonical" href="${esc(ogUrl)}">` : "",
+  ].filter(Boolean).join("\n");
+}
+
 export function renderPage({ contentHtml, toc, page, config, sidebar }) {
   const tc = config.themeConfig;
   const base = config.base || "/";
@@ -230,6 +282,7 @@ export function renderPage({ contentHtml, toc, page, config, sidebar }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(page.description || config.description)}">
+${socialTags(page, config, base)}
 ${hreflang}
 <link rel="stylesheet" href="${esc(asset("theme.css"))}">
 ${(config.customCssFiles || []).map((f) => `<link rel="stylesheet" href="${esc(asset(f))}">`).join("")}
