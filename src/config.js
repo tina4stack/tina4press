@@ -11,6 +11,10 @@ const DEFAULTS = {
   base: "/",
   hostname: "",       // "https://example.com" — required for sitemap.xml
   robots: "",         // replaces the default robots.txt rules wholesale
+  ogImage: "",        // default social-card image: a path served from public/ (e.g. "/og-image.png") or a full https:// URL
+  ogImageAlt: "",     // alt text for the social-card image
+  ogImageWidth: "",   // optional pixel width of ogImage (some scrapers render faster with it)
+  ogImageHeight: "",  // optional pixel height of ogImage
   cleanUrls: false,   // true => /foo/ (dir index) + redirect stubs from /foo.html
   srcDir: "docs",
   outDir: "dist",

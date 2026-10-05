@@ -105,13 +105,51 @@ export default {
 | `title` | `"Tina4press"` | Site name. Shows in the header and every page title. |
 | `description` | `"Docs built with tina4press"` | Fallback meta description. |
 | `base` | `"/"` | URL prefix. Set it when the site lives under a subpath. |
-| `hostname` | none | `"https://example.com"`. Required for `sitemap.xml`. |
+| `hostname` | none | `"https://example.com"`. Required for `sitemap.xml`, and for `og:url` / `canonical` / a relative `ogImage` on social cards. |
 | `robots` | none | Replaces the default `robots.txt` rules wholesale. |
+| `ogImage` | none | Default social-card image: a path served from `public/` (e.g. `"/og-image.png"`) or a full `https://` URL. |
+| `ogImageAlt` | none | Alt text for the social-card image. |
+| `ogImageWidth` / `ogImageHeight` | none | Optional pixel size of `ogImage` (some scrapers render the card faster with it). |
 | `locales` | none | Multi-language sites. See below. |
 | `srcDir` | `"docs"` | Where the Markdown lives, relative to the config file. |
 | `outDir` | `"dist"` | Where the HTML lands, relative to the config file. |
 | `cleanUrls` | `false` | Directory-style URLs. See below. |
 | `head` | none | Extra tags for `<head>`, as `[tag, attrs, inner]` triples. |
+
+### Social cards (Open Graph)
+
+Every page emits Open Graph and Twitter Card tags, so a shared link unfurls with
+a title, a description and an image on Slack, X, LinkedIn and the rest - no extra
+config needed for the text. Each page gets its *own* card: `og:title` is the
+page's title, `og:description` its description, and `og:url` / `canonical` its
+own URL (these two, and a relative `ogImage`, need `hostname` to be set so the
+URL can be absolute). Set one image for the whole site with `ogImage`:
+
+```js
+export default {
+  hostname: "https://example.com",
+  ogImage: "/og-image.png",        // 1200x630 recommended, served from public/
+  ogImageAlt: "My project",
+  ogImageWidth: "1200",
+  ogImageHeight: "630",
+};
+```
+
+Override any field on a single page through its frontmatter:
+
+```md
+---
+title: Launch
+ogTitle: The one-line pitch
+ogDescription: A longer sentence for the card.
+ogImage: /launch-card.png
+ogImageAlt: Launch banner
+ogType: article            # home pages default to "website", others to "article"
+---
+```
+
+With no `ogImage` anywhere the card falls back to a text-only `summary` card;
+with an image it is a `summary_large_image` card.
 
 ### themeConfig keys
 
