@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
 import { markdownToHtml, makeSlugger } from "./markdown.js";
-import { parseFrontmatter } from "./frontmatter.js";
+import { parseFrontmatter, tagsOf } from "./frontmatter.js";
 import { autoSectionSidebar, resolveSidebar, titleFromPage } from "./sidebar.js";
 import { renderPage } from "./theme/layout.js";
 import { collectPageLinks, checkLinks, reportLinks } from "./links.js";
@@ -208,6 +208,11 @@ export function build(config, { quiet = false, strict = false } = {}) {
       searchIndex.push({
         title, url: withBase(page.url, base), crumb: crumbFor(page.relPath),
         headings: toc.map((h) => h.text),
+        // retrieval metadata (#119): a short summary and the page's tags, so a
+        // broad or synonym query can match the right page even when its body
+        // text does not carry the words.
+        summary: page.data.summary || "",
+        tags: tagsOf(page.data),
         text: plainText(page.content).slice(0, 2000),
         // so a French reader is not shown English hits
         ...(config.locales ? { locale } : {}),
