@@ -1,0 +1,91 @@
+# Copyright (c) 2026 Code Infinity
+# SPDX-License-Identifier: MPL-2.0
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# Publish tina4press to npm on a version tag (e.g. v0.1.16), with the same
+# shape as the framework repos: a build/verify job that also runs on PRs, and a
+# publish job gated behind a protected `release` GitHub Environment that holds
+# the NPM_TOKEN. Nothing reaches the registry until that environment approves.
+#
+# ONE-TIME SETUP (repo Settings): create an Environment named `release` and add
+# an `NPM_TOKEN` secret - a current npm automation/granular token for the
+# tina4stack account with publish rights on `tina4press`. (A stale token is why
+# `npm publish` / `npm whoami` currently return 401.)
+
+name: Publish to npm
+
+on:
+  push:
+    tags: ['v[0-9]*.*.*', '[0-9]*.*.*']
+  pull_request:
+    branches: [main]
+  # Lets us publish an already-pushed tag (e.g. v0.1.16) without moving it:
+  # run the workflow from that tag ref in the Actions tab.
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Build and verify the package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      - name: On a tag, the tag must match package.json version
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          VERSION="$(node -p 'require("./package.json").version')"
+          test "${RELEASE_TAG#v}" = "$VERSION"
+      - run: npm ci
+      - run: npm test
+      - name: Build the exact tarball that will be published
+        run: |
+          mkdir -p release-dist
+          npm pack --ignore-scripts --pack-destination release-dist
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: package
+          path: release-dist/*
+          if-no-files-found: error
+
+  publish:
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    # The NPM_TOKEN lives on this protected environment; a tag push waits for its
+    # approval before anything touches the registry.
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: package
+          path: release-dist
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: release-dist/*.tgz
+      - name: Publish the verified tarball
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish ./release-dist/*.tgz --ignore-scripts --provenance --access public
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          generate_release_notes: true
+          files: release-dist/*
