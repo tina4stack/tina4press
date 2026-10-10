@@ -10,6 +10,19 @@ export function parseFrontmatter(src) {
   return { data, content: src.slice(m[0].length) };
 }
 
+// The page's tags: the retrieval/SEO tagging mechanism. Accepts `tags` or its
+// synonym `keywords`, as a YAML sequence or a comma-separated scalar, and always
+// returns a clean string[]. Used to index tags for search and to emit the
+// keywords meta, so related content surfaces even when the words are not in the
+// body text.
+export function tagsOf(data = {}) {
+  const value = data.tags ?? data.keywords;
+  const list = Array.isArray(value)
+    ? value
+    : (typeof value === "string" ? value.split(",") : []);
+  return list.map((entry) => String(entry).trim()).filter(Boolean);
+}
+
 // Tokenize into { indent, raw } lines, dropping blanks and comments.
 function parseYaml(text) {
   const lines = text.replace(/\r\n?/g, "\n").split("\n")

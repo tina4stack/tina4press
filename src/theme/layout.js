@@ -3,6 +3,8 @@
 // toggle, search, copy, mobile nav). The theme is data-attribute driven so the
 // pre-paint inline script can set it before first paint (no flash).
 
+import { tagsOf } from "../frontmatter.js";
+
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
   .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -282,6 +284,7 @@ export function renderPage({ contentHtml, toc, page, config, sidebar }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(page.description || config.description)}">
+${(() => { const kw = tagsOf(page.data || {}); return kw.length ? `<meta name="keywords" content="${esc(kw.join(", "))}">` : ""; })()}
 ${socialTags(page, config, base)}
 ${hreflang}
 <link rel="stylesheet" href="${esc(asset("theme.css"))}">
